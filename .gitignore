@@ -1,0 +1,89 @@
+# Build results
+**/obj/
+**/bin/
+**/Obj/
+**/Bin/
+**/log/
+**/logs/
+
+# Assemblies e binários compilados (também fora de bin/obj)
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.winmd
+*.so
+*.dylib
+
+# User-specific (MSBuild / Mono)
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# Visual Studio
+.vs/
+*.rsuser
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# VS Code (opcional: descomente se não quiser versionar config local)
+# .vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+*.opencover.xml
+
+# .NET tooling
+*.DotSettings.user
+*.DotSettings
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secrets / ambiente local (não commitar)
+appsettings.*.local.json
+appsettings.Development.json.user
+secrets.json
+*.pfx
+*.key
+
+# SQLite (dev / local)
+*.db-shm
+*.db-wal
+
+# Misc
+*.log
+*.tmp
+*.temp
+~$*
+.env
+**/.env
+.env.local
+.env.*.local

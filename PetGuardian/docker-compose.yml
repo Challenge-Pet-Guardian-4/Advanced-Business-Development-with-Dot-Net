@@ -1,0 +1,49 @@
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-db
+    environment:
+      APP_USER: "pet_guardian"
+      APP_USER_PASSWORD: "petguardian123"
+      ORACLE_PASSWORD: "oraclepetguardian"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+    networks:
+      - challenge_net
+    restart: unless-stopped
+    ports:
+      - "1521:1521"
+
+  petguardian-api:
+    build:
+      context: .
+      dockerfile: PetGuardian.API/Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
+    image: enzookuizumi/petguardian-api:v1
+    container_name: petguardian-api
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Staging
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__PetGuardianOracle: "User Id=pet_guardian;Password=petguardian123;Data Source=oracle-db:1521/XEPDB1;"
+    networks:
+      - challenge_net
+    restart: on-failure
+
+networks:
+  challenge_net:
+    driver: bridge
+
+volumes:
+  oracle_data:
