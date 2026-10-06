@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using PetGuardian.Domain.Common;
+using PetGuardian.Application.Common;
 
 namespace PetGuardian.Application.Repositories;
 
@@ -32,4 +33,10 @@ public interface IRepository<T> where T : BaseEntity
     /// se a entidade não possuir essa propriedade mapeada.
     /// </summary>
     bool ExistsByNome(string valor);
+    
+    /// <summary>
+    /// Consulta paginada com filtro e ordenação executados no banco (Skip/Take).
+    /// sortBy inválido ou sensível lança ArgumentException (vira 400 no GlobalExceptionHandler).
+    /// </summary>
+    PagedResult<T> GetPaged(Expression<Func<T, bool>>? filter, string? sortBy, bool descending, int page, int pageSize);
 }

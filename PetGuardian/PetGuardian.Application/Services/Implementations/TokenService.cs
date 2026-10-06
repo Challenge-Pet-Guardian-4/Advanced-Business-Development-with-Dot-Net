@@ -8,27 +8,30 @@ using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
-/// <summary>
-/// Implementação do serviço de token JWT utilizando a biblioteca oficial da Microsoft (System.IdentityModel.Tokens.Jwt).
-/// Adere aos padrões SOLID (SRP, ISP, DIP), Clean Code e DRY.
-/// </summary>
+/// <summary>Emissão/validação de JWT (RFC 7519, HS256). O secret vem SEMPRE de configuração (Jwt:SecretKey).</summary>
 public class TokenService(IConfiguration configuration) : ITokenService
 {
-    public const string DefaultSecret = "PetGuardianChallenge2026SuperSecretKeySecurityJWT100%!";
     public const string Issuer = "PetGuardian.API";
     public const string Audience = "PetGuardian.Clients";
     public const int ExpirationHours = 2;
+    public const int MinimumSecretLength = 32;
 
-    private byte[] GetKeyBytes()
+    /// <summary>Lê e valida o secret. Falha explicitamente se ausente/curto (nada de fallback hardcoded).</summary>
+    public static byte[] ResolveKeyBytes(IConfiguration configuration)
     {
-        var secret = configuration["Jwt:SecretKey"] ?? DefaultSecret;
-        return Encoding.UTF8.GetBytes(secret.PadRight(32));
+        var secret = configuration["Jwt:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secret) || secret.Length < MinimumSecretLength)
+            throw new InvalidOperationException(
+                $"Jwt:SecretKey ausente ou com menos de {MinimumSecretLength} caracteres. " +
+                "Defina via variável de ambiente Jwt__SecretKey ou dotnet user-secrets.");
+
+        return Encoding.UTF8.GetBytes(secret);
     }
 
     public string GerarToken(Usuario usuario)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = new SymmetricSecurityKey(GetKeyBytes());
+        var key = new SymmetricSecurityKey(ResolveKeyBytes(configuration));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
         var claims = new List<Claim>
@@ -48,8 +51,7 @@ public class TokenService(IConfiguration configuration) : ITokenService
             SigningCredentials = credentials
         };
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
     }
 
     public (bool IsValido, ClaimsPrincipal? Principal) ValidarToken(string token)
@@ -57,13 +59,10 @@ public class TokenService(IConfiguration configuration) : ITokenService
         if (string.IsNullOrWhiteSpace(token))
             return (false, null);
 
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = new SymmetricSecurityKey(GetKeyBytes());
-
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = key,
+            IssuerSigningKey = new SymmetricSecurityKey(ResolveKeyBytes(configuration)),
             ValidateIssuer = true,
             ValidIssuer = Issuer,
             ValidateAudience = true,
@@ -73,7 +72,7 @@ public class TokenService(IConfiguration configuration) : ITokenService
 
         try
         {
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+            var principal = new JwtSecurityTokenHandler().ValidateToken(token, validationParameters, out _);
             return (true, principal);
         }
         catch
