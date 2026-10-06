@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Domain.Common;
 using PetGuardian.Infrastructure.Persistence;
+using PetGuardian.Application.Common;
+using PetGuardian.Infrastructure.Persistence.Extensions;
 
 namespace PetGuardian.Infrastructure.Persistence.Repositories;
 
@@ -128,5 +130,51 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
                 $"ExistsByNome: a entidade '{typeof(T).Name}' não possui a propriedade " +
                 $"'{PropriedadeNome}' (string) mapeada. " +
                 "Esse método só se aplica a entidades com campo de denominação 'Nome'.");
+    }
+    
+    // Campos que nunca podem ser usados em ordenação (evita vazar informação de hash/salt).
+    private static readonly HashSet<string> CamposNaoOrdenaveis = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Senha", "Salt"
+    };
+
+    /// <inheritdoc />
+    public PagedResult<T> GetPaged(
+        Expression<Func<T, bool>>? filter, string? sortBy, bool descending, int page, int pageSize)
+    {
+        var propriedadeOrdenacao = ResolverPropriedadeOrdenavel(sortBy);
+
+        IQueryable<T> query = _set.AsNoTracking();
+        if (filter is not null)
+            query = query.Where(filter);
+
+        var total = query.Count();
+        var itens = query
+            .OrderByProperty(propriedadeOrdenacao, descending)
+            .ThenBy(e => e.Id)                       // desempate estável entre páginas
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<T>(itens, total);
+    }
+
+    private string ResolverPropriedadeOrdenavel(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return nameof(BaseEntity.Id);
+
+        var entityType = Context.Model.FindEntityType(typeof(T))
+                         ?? throw new InvalidOperationException($"O tipo '{typeof(T).Name}' não está registrado no modelo EF Core.");
+
+        var permitidas = entityType.GetProperties()
+            .Where(p => p.PropertyInfo is not null && !CamposNaoOrdenaveis.Contains(p.Name))
+            .Select(p => p.Name)
+            .ToList();
+
+        return permitidas.FirstOrDefault(n => n.Equals(sortBy.Trim(), StringComparison.OrdinalIgnoreCase))
+               ?? throw new ArgumentException(
+                   $"Campo de ordenação inválido: '{sortBy}'. Campos permitidos: {string.Join(", ", permitidas)}.",
+                   nameof(sortBy));
     }
 }
