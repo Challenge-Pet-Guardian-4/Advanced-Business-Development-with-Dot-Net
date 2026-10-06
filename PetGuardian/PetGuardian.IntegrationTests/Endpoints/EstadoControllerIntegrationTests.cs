@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.IntegrationTests.Fixtures;
@@ -9,7 +9,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class EstadoControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
     public async Task Post_ComDadosValidos_DeveRetornar201Created()
@@ -31,7 +31,7 @@ public class EstadoControllerIntegrationTests(CustomWebApplicationFactory factor
     public async Task GetById_IdExistente_DeveRetornar200Ok()
     {
         // Arrange
-        var postRes = await _client.PostAsJsonAsync("/api/estado", new EstadoRequest("Paraná Teste"));
+        var postRes = await _client.PostAsJsonAsync("/api/estado", new EstadoRequest("ParanÃ¡ Teste"));
         var criado = await postRes.Content.ReadFromJsonAsync<EstadoResponse>();
         Assert.NotNull(criado);
 

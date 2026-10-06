@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using PetGuardian.IntegrationTests.Fixtures;
 using Xunit;
 
@@ -7,13 +7,13 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class ObservabilityMiddlewareTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
     public async Task Request_SemHeaderCorrelationId_DeveGerarERetornarCorrelationIdNoHeader()
     {
         // Arrange
-        // (Sem header prévio no request)
+        // (Sem header prÃ©vio no request)
 
         // Act
         var response = await _client.GetAsync("/api/status");

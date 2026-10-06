@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.IntegrationTests.Fixtures;
@@ -9,7 +9,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class StatusControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
     public async Task Post_ComDadosValidos_DeveRetornar201Created()

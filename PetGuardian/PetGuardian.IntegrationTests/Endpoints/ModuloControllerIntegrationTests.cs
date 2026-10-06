@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -10,7 +10,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     private async Task<TrilhaResponse> CriarTrilhaAuxiliarAsync(string nome)
     {
@@ -39,7 +39,7 @@ public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var trilha = await CriarTrilhaAuxiliarAsync("Trilha Para Modulo Post");
-        var request = new ModuloRequest("Módulo 1: Introdução", "1 hora", "Conteúdo introdutório", trilha.Id);
+        var request = new ModuloRequest("MÃ³dulo 1: IntroduÃ§Ã£o", "1 hora", "ConteÃºdo introdutÃ³rio", trilha.Id);
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/modulo", request);
@@ -48,7 +48,7 @@ public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factor
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var modulo = await response.Content.ReadFromJsonAsync<ModuloResponse>();
         Assert.NotNull(modulo);
-        Assert.Equal("Módulo 1: Introdução", modulo.Nome);
+        Assert.Equal("MÃ³dulo 1: IntroduÃ§Ã£o", modulo.Nome);
         Assert.Equal(trilha.Id, modulo.TrilhaId);
     }
 
@@ -57,7 +57,7 @@ public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var trilha = await CriarTrilhaAuxiliarAsync("Trilha Para Modulo Get");
-        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("Módulo Prático", "30 min", "Desc", trilha.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("MÃ³dulo PrÃ¡tico", "30 min", "Desc", trilha.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<ModuloResponse>();
         Assert.NotNull(criado);
 
@@ -89,18 +89,18 @@ public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var trilha = await CriarTrilhaAuxiliarAsync("Trilha Para Modulo Put");
-        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("Módulo Original", "45 min", "Desc", trilha.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("MÃ³dulo Original", "45 min", "Desc", trilha.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<ModuloResponse>();
         Assert.NotNull(criado);
 
         // Act
-        var putRes = await _client.PutAsJsonAsync($"/api/modulo/{criado.Id}", new ModuloUpdateRequest("Módulo Atualizado", "50 min", "Nova Desc"));
+        var putRes = await _client.PutAsJsonAsync($"/api/modulo/{criado.Id}", new ModuloUpdateRequest("MÃ³dulo Atualizado", "50 min", "Nova Desc"));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, putRes.StatusCode);
         var atualizado = await putRes.Content.ReadFromJsonAsync<ModuloResponse>();
         Assert.NotNull(atualizado);
-        Assert.Equal("Módulo Atualizado", atualizado.Nome);
+        Assert.Equal("MÃ³dulo Atualizado", atualizado.Nome);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class ModuloControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var trilha = await CriarTrilhaAuxiliarAsync("Trilha Para Modulo Del");
-        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("Módulo Para Deletar", "10 min", "Desc", trilha.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/modulo", new ModuloRequest("MÃ³dulo Para Deletar", "10 min", "Desc", trilha.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<ModuloResponse>();
         Assert.NotNull(criado);
 

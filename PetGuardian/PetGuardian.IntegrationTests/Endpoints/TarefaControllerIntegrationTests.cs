@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -10,7 +10,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     private async Task<(PetResponse Pet, UsuarioResponse Usuario)> CriarContextoAuxiliarAsync()
     {
@@ -47,7 +47,7 @@ public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var (pet, user) = await CriarContextoAuxiliarAsync();
-        var request = new TarefaRequest("Dar Ração Especial", 25, "Ração hipoalergênica 100g", DateTime.UtcNow.AddDays(1), pet.Id, user.Id);
+        var request = new TarefaRequest("Dar RaÃ§Ã£o Especial", 25, "RaÃ§Ã£o hipoalergÃªnica 100g", DateTime.UtcNow.AddDays(1), pet.Id, user.Id);
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/tarefa", request);
@@ -56,7 +56,7 @@ public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factor
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var tarefa = await response.Content.ReadFromJsonAsync<TarefaResponse>();
         Assert.NotNull(tarefa);
-        Assert.Equal("Dar Ração Especial", tarefa.Titulo);
+        Assert.Equal("Dar RaÃ§Ã£o Especial", tarefa.Titulo);
         Assert.Equal(25, tarefa.PontosTarefa);
     }
 
@@ -65,7 +65,7 @@ public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var (pet, user) = await CriarContextoAuxiliarAsync();
-        var postRes = await _client.PostAsJsonAsync("/api/tarefa", new TarefaRequest("Passeio Diário", 15, "Caminhar 20 min", DateTime.UtcNow.AddDays(1), pet.Id, user.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/tarefa", new TarefaRequest("Passeio DiÃ¡rio", 15, "Caminhar 20 min", DateTime.UtcNow.AddDays(1), pet.Id, user.Id));
         var criada = await postRes.Content.ReadFromJsonAsync<TarefaResponse>();
         Assert.NotNull(criada);
 
@@ -97,7 +97,7 @@ public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var (pet, user) = await CriarContextoAuxiliarAsync();
-        var postRes = await _client.PostAsJsonAsync("/api/tarefa", new TarefaRequest("Administrar Medicamento", 50, "Antibiótico às 14h", DateTime.UtcNow.AddDays(1), pet.Id, user.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/tarefa", new TarefaRequest("Administrar Medicamento", 50, "AntibiÃ³tico Ã s 14h", DateTime.UtcNow.AddDays(1), pet.Id, user.Id));
         var criada = await postRes.Content.ReadFromJsonAsync<TarefaResponse>();
         Assert.NotNull(criada);
 

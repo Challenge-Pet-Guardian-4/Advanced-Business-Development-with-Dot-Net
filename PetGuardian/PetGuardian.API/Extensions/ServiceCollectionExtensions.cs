@@ -1,17 +1,20 @@
-using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PetGuardian.API.Security;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Implementations;
 using PetGuardian.Application.Services.Interfaces;
+using PetGuardian.Domain.Enums;
 using PetGuardian.Infrastructure.Persistence;
 using PetGuardian.Infrastructure.Persistence.Repositories;
 
 namespace PetGuardian.API.Extensions;
 
 /// <summary>
-/// Extensões para registrar persistência, repositórios e serviços da solução PetGuardian na injeção de dependências.
+/// Extensões para registrar persistência, repositórios, serviços e segurança da solução PetGuardian.
 /// </summary>
 public static class PetGuardianServiceCollectionExtensions
 {
@@ -32,7 +35,7 @@ public static class PetGuardianServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Registra todas as implementações de repositório como <c>Scoped</c> (um por requisição HTTP).</summary>
+    /// <summary>Registra as implementações de repositório relacionais como <c>Scoped</c>.</summary>
     public static IServiceCollection AddPetGuardianRepositories(this IServiceCollection services)
     {
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -79,24 +82,35 @@ public static class PetGuardianServiceCollectionExtensions
         services.AddScoped<IAulaService, AulaService>();
         services.AddScoped<IHistoricoService, HistoricoService>();
 
+        // Consultas paginadas (leitura)
+        services.AddScoped<IPetQueryService, PetQueryService>();
+        services.AddScoped<ITarefaQueryService, TarefaQueryService>();
+        services.AddScoped<IUsuarioQueryService, UsuarioQueryService>();
+        services.AddScoped<IHistoricoQueryService, HistoricoQueryService>();
+
+        // Catálogo NoSQL (MongoDB)
+        services.AddScoped<ITrilhaCatalogoService, TrilhaCatalogoService>();
+
         // Join tables
         services.AddScoped<IUsuarioPetService, UsuarioPetService>();
         services.AddScoped<IUsuarioEnderecoService, UsuarioEnderecoService>();
 
         // Segurança / Autenticação
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
 
-    /// <summary>Configura autenticação JWT Bearer oficial da Microsoft e autorização.</summary>
+    /// <summary>
+    /// JWT Bearer + autorização: toda rota exige usuário autenticado (fallback policy),
+    /// exceto as marcadas com [AllowAnonymous]; policy "AdminOnly" para operações administrativas.
+    /// O secret é lido de forma lazy da configuração final (variável de ambiente / user-secrets).
+    /// </summary>
     public static IServiceCollection AddPetGuardianJwtAuthentication(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var jwtSecret = configuration["Jwt:SecretKey"] ?? TokenService.DefaultSecret;
-        var keyBytes = Encoding.UTF8.GetBytes(jwtSecret.PadRight(32));
-
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -106,19 +120,28 @@ public static class PetGuardianServiceCollectionExtensions
         {
             options.RequireHttpsMetadata = false;
             options.SaveToken = true;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-                ValidateIssuer = true,
-                ValidIssuer = TokenService.Issuer,
-                ValidateAudience = true,
-                ValidAudience = TokenService.Audience,
-                ClockSkew = TimeSpan.Zero
-            };
         });
 
-        services.AddAuthorization();
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IConfiguration>((options, cfg) =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(TokenService.ResolveKeyBytes(cfg)),
+                    ValidateIssuer = true,
+                    ValidIssuer = TokenService.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = TokenService.Audience,
+                    ClockSkew = TimeSpan.Zero,
+                    NameClaimType = ClaimTypes.Name,
+                    RoleClaimType = ClaimTypes.Role
+                };
+            });
+
+        services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(nameof(RoleUsuario.Admin)));
 
         return services;
     }

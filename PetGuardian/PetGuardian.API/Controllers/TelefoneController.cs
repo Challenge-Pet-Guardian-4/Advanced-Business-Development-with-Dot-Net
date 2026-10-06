@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
@@ -37,6 +38,7 @@ public class TelefoneController(ITelefoneService telefoneService, ILogger<Telefo
 
     /// <summary>Cadastra um novo registro de telefone na base de dados.</summary>
     [HttpPost]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(TelefoneResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] TelefoneRequest request)

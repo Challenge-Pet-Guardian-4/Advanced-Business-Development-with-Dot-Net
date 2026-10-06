@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.IntegrationTests.Fixtures;
@@ -9,7 +9,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class CidadeControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     private async Task<EstadoResponse> CriarEstadoAuxiliarAsync(string nome)
     {
@@ -74,18 +74,18 @@ public class CidadeControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var estado = await CriarEstadoAuxiliarAsync("Estado Para Cidade Put");
-        var postRes = await _client.PostAsJsonAsync("/api/cidade", new CidadeRequest("Ribeirão Preto Original", estado.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/cidade", new CidadeRequest("RibeirÃ£o Preto Original", estado.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<CidadeResponse>();
         Assert.NotNull(criado);
 
         // Act
-        var putRes = await _client.PutAsJsonAsync($"/api/cidade/{criado.Id}", new CidadeRequest("Ribeirão Preto Atualizado", estado.Id));
+        var putRes = await _client.PutAsJsonAsync($"/api/cidade/{criado.Id}", new CidadeRequest("RibeirÃ£o Preto Atualizado", estado.Id));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, putRes.StatusCode);
         var atualizado = await putRes.Content.ReadFromJsonAsync<CidadeResponse>();
         Assert.NotNull(atualizado);
-        Assert.Equal("Ribeirão Preto Atualizado", atualizado.NomeCidade);
+        Assert.Equal("RibeirÃ£o Preto Atualizado", atualizado.NomeCidade);
     }
 
     [Fact]

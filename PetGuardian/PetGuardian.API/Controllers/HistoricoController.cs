@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
 
@@ -8,15 +9,31 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class HistoricoController(IHistoricoService historicoService, ILogger<HistoricoController> logger) : ControllerBase
+public class HistoricoController(
+    IHistoricoService historicoService,
+    IHistoricoQueryService historicoQueryService,
+    ILogger<HistoricoController> logger) : ApiControllerBase
 {
-    /// <summary>Lista todos os registros de histórico cadastrados.</summary>
+    /// <summary>Lista históricos com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<HistoricoResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<HistoricoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GetAll([FromQuery] PageQuery page, [FromQuery] HistoricoFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/historico: Listando todos os históricos.");
-        return Ok(historicoService.GetAll());
+        logger.LogInformation("HTTP GET /api/historico: pesquisando históricos (página {Page}, tamanho {PageSize}).", page.Page, page.PageSize);
+        var resultado = historicoQueryService.Search(page, filter);
+
+        return Ok(Paginar(resultado, nameof(GetAll), numero => new
+        {
+            page = numero,
+            pageSize = resultado.PageSize,
+            sortBy = page.SortBy,
+            sortDir = page.SortDir,
+            petId = filter.PetId,
+            tipoHist = filter.TipoHist,
+            dataDe = filter.DataDe,
+            dataAte = filter.DataAte
+        }, ComLinks));
     }
 
     /// <summary>Obtém um registro de histórico pelo Id.</summary>
@@ -32,7 +49,7 @@ public class HistoricoController(IHistoricoService historicoService, ILogger<His
             logger.LogWarning("HTTP GET /api/historico/{Id}: Histórico não encontrado.", id);
             return NotFound();
         }
-        return Ok(h);
+        return Ok(ComLinks(h));
     }
 
     /// <summary>Lista o histórico de um pet específico.</summary>
@@ -41,27 +58,21 @@ public class HistoricoController(IHistoricoService historicoService, ILogger<His
     public IActionResult GetByPet(Guid petId)
     {
         logger.LogInformation("HTTP GET /api/historico/by-pet/{PetId}: Buscando histórico do pet.", petId);
-        return Ok(historicoService.GetByPetId(petId));
+        return Ok(historicoService.GetByPetId(petId).Select(ComLinks).ToList());
     }
 
-    /// <summary>Cadastra um novo registro de histórico na base de dados.</summary>
+    /// <summary>Cadastra um novo registro de histórico.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(HistoricoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] HistoricoRequest request)
     {
-        logger.LogInformation("HTTP POST /api/historico: Cadastrando evento de histórico '{TipoEvento}' para Pet {PetId}.", request.TipoHist, request.PetId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/historico: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
+        logger.LogInformation("HTTP POST /api/historico: Cadastrando evento '{TipoEvento}' para Pet {PetId}.", request.TipoHist, request.PetId);
         var created = historicoService.Create(request);
-        logger.LogInformation("HTTP POST /api/historico: Histórico {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
-    /// <summary>Atualiza um registro de histórico existente (o pet vinculado não é reatribuível por aqui).</summary>
+    /// <summary>Atualiza um registro de histórico (o pet vinculado não é reatribuível).</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(HistoricoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -69,22 +80,16 @@ public class HistoricoController(IHistoricoService historicoService, ILogger<His
     public IActionResult Update(Guid id, [FromBody] HistoricoUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/historico/{Id}: Atualizando histórico.", id);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/historico/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = historicoService.Update(id, request);
         if (updated is null)
         {
             logger.LogWarning("HTTP PUT /api/historico/{Id}: Histórico não encontrado para atualização.", id);
             return NotFound();
         }
-        logger.LogInformation("HTTP PUT /api/historico/{Id}: Histórico atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
-    /// <summary>Remove um registro de histórico pelo Id.</summary>
+    /// <summary>Remove um registro de histórico.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -96,7 +101,17 @@ public class HistoricoController(IHistoricoService historicoService, ILogger<His
             logger.LogWarning("HTTP DELETE /api/historico/{Id}: Histórico não encontrado para exclusão.", id);
             return NotFound();
         }
-        logger.LogInformation("HTTP DELETE /api/historico/{Id}: Histórico excluído com sucesso.", id);
         return NoContent();
     }
+
+    private HistoricoResponse ComLinks(HistoricoResponse h) => h with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = h.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = h.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = h.Id }),
+            LinkTo("pet", "GET", "GetById", new { id = h.PetId }, "Pet")
+        ]
+    };
 }

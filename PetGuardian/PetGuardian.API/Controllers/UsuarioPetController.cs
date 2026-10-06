@@ -8,9 +8,9 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<UsuarioPetController> logger) : ControllerBase
+public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<UsuarioPetController> logger) : ApiControllerBase
 {
-    /// <summary>Lista todos os registros de vínculos de rede de cuidado de usuários e pets cadastrados.</summary>
+    /// <summary>Lista todos os vínculos da rede de cuidado.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll()
@@ -19,7 +19,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         return Ok(usuarioPetService.GetAll());
     }
 
-    /// <summary>Lista todos os registros de vínculos de rede de cuidado de usuários e pets associados a um usuário específico.</summary>
+    /// <summary>Vínculos de um usuário.</summary>
     [HttpGet("by-usuario/{usuarioId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
     public IActionResult GetByUsuario(Guid usuarioId)
@@ -28,7 +28,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         return Ok(usuarioPetService.GetByUsuarioId(usuarioId));
     }
 
-    /// <summary>Lista todos os registros de vínculos de rede de cuidado de usuários e pets associados a um pet específico.</summary>
+    /// <summary>Vínculos de um pet.</summary>
     [HttpGet("by-pet/{petId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
     public IActionResult GetByPet(Guid petId)
@@ -37,7 +37,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         return Ok(usuarioPetService.GetByPetId(petId));
     }
 
-    /// <summary>Obtém a rede de cuidado colaborativo (co-cuidadores e pets vinculados) de um usuário.</summary>
+    /// <summary>Rede de cuidado colaborativo (co-cuidadores e pets) de um usuário.</summary>
     [HttpGet("rede-cuidado/{usuarioId:guid}")]
     [ProducesResponseType(typeof(RedeCuidadoResponse), StatusCodes.Status200OK)]
     public IActionResult GetRedeCuidado(Guid usuarioId)
@@ -46,54 +46,48 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         return Ok(usuarioPetService.GetRedeCuidadoByUsuarioId(usuarioId));
     }
 
-    /// <summary>Cadastra um novo registro de vínculo de rede de cuidado de usuário e pet na base de dados.</summary>
+    /// <summary>Cria um vínculo usuário-pet (o próprio usuário do token ou Admin).</summary>
     [HttpPost]
     [ProducesResponseType(typeof(UsuarioPetResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult Create([FromBody] UsuarioPetRequest request)
     {
+        if (!IsSelfOrAdmin(request.UsuarioId))
+            return Forbid();
+
         logger.LogInformation("HTTP POST /api/usuariopet: Vinculando Usuário {UsuarioId} ao Pet {PetId}.", request.UsuarioId, request.PetId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/usuariopet: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = usuarioPetService.Create(request);
-        logger.LogInformation("HTTP POST /api/usuariopet: Vínculo criado com sucesso.");
         return CreatedAtAction(nameof(GetByUsuario), new { usuarioId = created.UsuarioId }, created);
     }
 
-    /// <summary>Envia um convite de participação na rede de cuidado por ID (Exclusivo para Responsável Principal).</summary>
+    /// <summary>Convite por ID (exclusivo do responsável principal; AdminUsuarioId deve ser o usuário do token).</summary>
     [HttpPost("invite/by-usuario")]
     [ProducesResponseType(typeof(UsuarioPetResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult InviteByUsuario([FromBody] UsuarioPetInviteByUsuarioRequest request)
     {
+        if (!IsSelfOrAdmin(request.AdminUsuarioId))
+            return Forbid();
+
         logger.LogInformation("HTTP POST /api/usuariopet/invite/by-usuario: Convite do Admin {AdminId} para Usuário {ConvidadoId} no Pet {PetId}.", request.AdminUsuarioId, request.UsuarioConvidadoId, request.PetId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/usuariopet/invite/by-usuario: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = usuarioPetService.InviteByUsuario(request);
-        logger.LogInformation("HTTP POST /api/usuariopet/invite/by-usuario: Convite aceito e vínculo criado.");
         return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, created);
     }
 
-    /// <summary>Envia um convite de participação na rede de cuidado buscando por E-mail (Exclusivo para Responsável Principal).</summary>
+    /// <summary>Convite por e-mail (exclusivo do responsável principal; AdminUsuarioId deve ser o usuário do token).</summary>
     [HttpPost("invite/by-email")]
     [ProducesResponseType(typeof(UsuarioPetResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult InviteByEmail([FromBody] UsuarioPetInviteByEmailRequest request)
     {
+        if (!IsSelfOrAdmin(request.AdminUsuarioId))
+            return Forbid();
+
         logger.LogInformation("HTTP POST /api/usuariopet/invite/by-email: Convite do Admin {AdminId} para E-mail {Email} no Pet {PetId}.", request.AdminUsuarioId, request.Email, request.PetId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/usuariopet/invite/by-email: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = usuarioPetService.InviteByEmail(request);
-        logger.LogInformation("HTTP POST /api/usuariopet/invite/by-email: Convite aceito e vínculo criado.");
         return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, created);
     }
 
@@ -105,18 +99,12 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult Update(Guid usuarioId, Guid petId, [FromBody] UsuarioPetUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Atualizando responsabilidade principal.", usuarioId, petId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: ModelState inválido.", usuarioId, petId);
-            return BadRequest(ModelState);
-        }
         var updated = usuarioPetService.Update(usuarioId, petId, request);
         if (updated is null)
         {
             logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Vínculo não encontrado para atualização.", usuarioId, petId);
             return NotFound();
         }
-        logger.LogInformation("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Vínculo atualizado com sucesso.", usuarioId, petId);
         return Ok(updated);
     }
 
@@ -132,7 +120,6 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
             logger.LogWarning("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: Vínculo não encontrado para exclusão.", usuarioId, petId);
             return NotFound();
         }
-        logger.LogInformation("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: Vínculo excluído com sucesso.", usuarioId, petId);
         return NoContent();
     }
 }

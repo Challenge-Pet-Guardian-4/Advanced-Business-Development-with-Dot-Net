@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.OpenApi;
 using PetGuardian.API.Exceptions;
 using PetGuardian.API.Extensions;
+using PetGuardian.API.Security;
 using Serilog;
 
 namespace PetGuardian.API;
@@ -12,9 +13,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // ----- SPRINT 3: Logging estruturado com Serilog -----
-        // Console + arquivo (rolling diário), níveis padrão de Information/Warning/Error,
-        // enriquecido com CorrelationId via CorrelationIdMiddleware (ver Extensions/ObservabilityExtensions.cs).
+        // Logging estruturado com Serilog (console + arquivo rolling diário), enriquecido com CorrelationId.
         builder.Host.UseSerilog((context, services, loggerConfiguration) => loggerConfiguration
             .ReadFrom.Configuration(context.Configuration)
             .Enrich.FromLogContext()
@@ -30,11 +29,17 @@ public class Program
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] ({CorrelationId}) {SourceContext}: {Message:lj}{NewLine}{Exception}"));
 
         builder.Services.AddPetGuardianDbContext(builder.Configuration);
+        builder.Services.AddPetGuardianMongo(builder.Configuration);
         builder.Services.AddPetGuardianRepositories();
         builder.Services.AddPetGuardianApplicationServices();
         builder.Services.AddPetGuardianJwtAuthentication(builder.Configuration);
         builder.Services.AddPetGuardianObservability(builder.Configuration);
-        builder.Services.AddControllers();
+
+        builder.Services.AddRouting(options => options.LowercaseUrls = true);
+        builder.Services.AddControllers(options =>
+            // tabelas de referência: leitura para qualquer autenticado, escrita só Admin
+            options.Conventions.Add(new RequireAdminForWritesConvention("Estado", "Cidade", "Bairro", "Raca", "Status")));
+
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddProblemDetails();
@@ -71,6 +76,12 @@ public class Program
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
                 Description = "Informe o token JWT no formato: Bearer {token}"
+            });
+            // Faz o botão "Authorize" do Swagger enviar o token nas requisições.
+            // (sintaxe Swashbuckle 10 / Microsoft.OpenApi 2.x; se o build reclamar, me mande o erro)
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
             });
         });
 

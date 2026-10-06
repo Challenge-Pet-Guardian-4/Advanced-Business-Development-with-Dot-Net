@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -21,7 +21,7 @@ public record EndpointAuditResult(
 [Collection(IntegrationTestCollection.Name)]
 public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutputHelper output)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
     private readonly List<EndpointAuditResult> _results = [];
 
     private async Task<HttpResponseMessage> ExecutarAsync(
@@ -59,11 +59,11 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, "/swagger/v1/swagger.json", HttpStatusCode.OK);
 
         // 2. ESTADO
-        var estadoPostRes = await ExecutarAsync(HttpMethod.Post, "/api/estado", HttpStatusCode.Created, JsonContent.Create(new EstadoRequest("Paraná")));
+        var estadoPostRes = await ExecutarAsync(HttpMethod.Post, "/api/estado", HttpStatusCode.Created, JsonContent.Create(new EstadoRequest("ParanÃ¡")));
         var estado = await estadoPostRes.Content.ReadFromJsonAsync<EstadoResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/estado", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/estado/{estado!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/estado/{estado.Id}", HttpStatusCode.OK, JsonContent.Create(new EstadoRequest("Paraná Atualizado")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/estado/{estado.Id}", HttpStatusCode.OK, JsonContent.Create(new EstadoRequest("ParanÃ¡ Atualizado")));
 
         // 3. CIDADE
         var cidadePostRes = await ExecutarAsync(HttpMethod.Post, "/api/cidade", HttpStatusCode.Created, JsonContent.Create(new CidadeRequest("Curitiba", estado.Id)));
@@ -134,7 +134,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/by-pet/{pet.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/rede-cuidado/{usuario.Id}", HttpStatusCode.OK);
 
-        // Usuário secundário para convite
+        // UsuÃ¡rio secundÃ¡rio para convite
         var emailSec = $"sec_{Guid.NewGuid():N}"[..25] + "@clyvo.com";
         var userSecPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioRequest("Cuidador Convidado", emailSec, "Senha@123", RoleUsuario.Comum, telefone.Id)));
         var userSec = await userSecPostRes.Content.ReadFromJsonAsync<UsuarioResponse>();
@@ -143,7 +143,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Put, $"/api/usuariopet/{userSec.Id}/{pet.Id}", HttpStatusCode.OK, JsonContent.Create(new UsuarioPetUpdateRequest(ResponPrinc: false)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuariopet/{userSec.Id}/{pet.Id}", HttpStatusCode.NoContent);
 
-        // Convite por e-mail (cria usuário convidado previamente)
+        // Convite por e-mail (cria usuÃ¡rio convidado previamente)
         var emailInvite = $"inv_{Guid.NewGuid():N}"[..25] + "@clyvo.com";
         var userInvitePostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioRequest("Cuidador Email", emailInvite, "Senha@123", RoleUsuario.Comum, telefone.Id)));
         var userInvite = await userInvitePostRes.Content.ReadFromJsonAsync<UsuarioResponse>();
@@ -159,37 +159,37 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, $"/api/status/{statusPendente.Id}", HttpStatusCode.OK);
 
         // 13. TAREFA
-        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("Vacinação V10", 50, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
+        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("VacinaÃ§Ã£o V10", 50, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
         var tarefa = await tarefaPostRes.Content.ReadFromJsonAsync<TarefaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/tarefa", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/{tarefa!.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-pet/{pet.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-usuario/{usuario.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-status/{statusPendente.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("Vacinação V10 + Raiva", 60, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
+        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("VacinaÃ§Ã£o V10 + Raiva", 60, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
         await ExecutarAsync(HttpMethod.Post, $"/api/tarefa/{tarefa.Id}/concluir", HttpStatusCode.OK, JsonContent.Create(new TarefaConcluirRequest(usuario.Id)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.NoContent);
 
         // 14. TRILHA
-        var trilhaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/trilha", HttpStatusCode.Created, JsonContent.Create(new TrilhaRequest("Trilha Saúde Canina", "Aprenda a cuidar do seu cão", pet.Id)));
+        var trilhaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/trilha", HttpStatusCode.Created, JsonContent.Create(new TrilhaRequest("Trilha SaÃºde Canina", "Aprenda a cuidar do seu cÃ£o", pet.Id)));
         var trilha = await trilhaPostRes.Content.ReadFromJsonAsync<TrilhaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/trilha", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/trilha/{trilha!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/trilha/{trilha.Id}", HttpStatusCode.OK, JsonContent.Create(new TrilhaUpdateRequest("Trilha Saúde Canina Avançada", "Desc atualizada")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/trilha/{trilha.Id}", HttpStatusCode.OK, JsonContent.Create(new TrilhaUpdateRequest("Trilha SaÃºde Canina AvanÃ§ada", "Desc atualizada")));
 
         // 15. MODULO
-        var moduloPostRes = await ExecutarAsync(HttpMethod.Post, "/api/modulo", HttpStatusCode.Created, JsonContent.Create(new ModuloRequest("Módulo de Nutrição", "45 min", "Alimentação balanceada", trilha.Id)));
+        var moduloPostRes = await ExecutarAsync(HttpMethod.Post, "/api/modulo", HttpStatusCode.Created, JsonContent.Create(new ModuloRequest("MÃ³dulo de NutriÃ§Ã£o", "45 min", "AlimentaÃ§Ã£o balanceada", trilha.Id)));
         var modulo = await moduloPostRes.Content.ReadFromJsonAsync<ModuloResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/modulo", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/modulo/{modulo!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/modulo/{modulo.Id}", HttpStatusCode.OK, JsonContent.Create(new ModuloUpdateRequest("Módulo de Nutrição e Hidratação", "50 min", "Desc atualizada")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/modulo/{modulo.Id}", HttpStatusCode.OK, JsonContent.Create(new ModuloUpdateRequest("MÃ³dulo de NutriÃ§Ã£o e HidrataÃ§Ã£o", "50 min", "Desc atualizada")));
 
         // 16. AULA
-        var aulaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/aula", HttpStatusCode.Created, JsonContent.Create(new AulaRequest("Porções Diárias", "Como calcular porções", 15, "Iniciante", "Vídeo e texto explicativo", false, modulo.Id)));
+        var aulaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/aula", HttpStatusCode.Created, JsonContent.Create(new AulaRequest("PorÃ§Ãµes DiÃ¡rias", "Como calcular porÃ§Ãµes", 15, "Iniciante", "VÃ­deo e texto explicativo", false, modulo.Id)));
         var aula = await aulaPostRes.Content.ReadFromJsonAsync<AulaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/aula", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/aula/{aula!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}", HttpStatusCode.OK, JsonContent.Create(new AulaUpdateRequest("Porções Diárias e Petiscos", "Cálculo detalhado", 20, "Iniciante", "Texto revisado", true)));
+        await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}", HttpStatusCode.OK, JsonContent.Create(new AulaUpdateRequest("PorÃ§Ãµes DiÃ¡rias e Petiscos", "CÃ¡lculo detalhado", 20, "Iniciante", "Texto revisado", true)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/aula/{aula.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/modulo/{modulo.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/trilha/{trilha.Id}", HttpStatusCode.NoContent);
@@ -203,7 +203,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Put, $"/api/historico/{historico.Id}", HttpStatusCode.OK, JsonContent.Create(new HistoricoUpdateRequest("CONSULTA_ROTINA_CONCLUIDA", DateTime.UtcNow)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/historico/{historico.Id}", HttpStatusCode.NoContent);
 
-        // 18. EXCLUSÕES FINAIS DE CICLO
+        // 18. EXCLUSÃ•ES FINAIS DE CICLO
         await ExecutarAsync(HttpMethod.Delete, $"/api/pet/{pet.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuario/{userSec.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuario/{usuario.Id}", HttpStatusCode.NoContent);
@@ -214,13 +214,13 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Delete, $"/api/raca/{raca.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/telefone/{telefone.Id}", HttpStatusCode.NoContent);
 
-        // Grava relatório em arquivo Markdown para consumo do relatório
+        // Grava relatÃ³rio em arquivo Markdown para consumo do relatÃ³rio
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("# Relatório de Auditoria de Todos os Endpoints da API PetGuardian (.NET 10)");
+        sb.AppendLine("# RelatÃ³rio de Auditoria de Todos os Endpoints da API PetGuardian (.NET 10)");
         sb.AppendLine();
-        sb.AppendLine($"Data da Execução: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC");
+        sb.AppendLine($"Data da ExecuÃ§Ã£o: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC");
         sb.AppendLine();
-        sb.AppendLine("| # | Método | Endpoint / Rota | Status Esperado | Status Obtido | Latência | Resultado |");
+        sb.AppendLine("| # | MÃ©todo | Endpoint / Rota | Status Esperado | Status Obtido | LatÃªncia | Resultado |");
         sb.AppendLine("| :--- | :---: | :--- | :---: | :---: | :---: | :---: |");
         for (int i = 0; i < _results.Count; i++)
         {
@@ -228,10 +228,10 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
             sb.AppendLine($"| {i + 1:D2} | `{r.Metodo}` | `{r.Rota}` | `{(int)r.StatusEsperado} {r.StatusEsperado}` | `{(int)r.StatusObtido} {r.StatusObtido}` | {r.LatenciaMs} ms | {r.Detalhe} |");
         }
         sb.AppendLine();
-        sb.AppendLine($"**Total de Endpoints Testados e Aprovados:** {_results.Count} operações HTTP com 100% de sucesso.");
+        sb.AppendLine($"**Total de Endpoints Testados e Aprovados:** {_results.Count} operaÃ§Ãµes HTTP com 100% de sucesso.");
 
-        // Caminho portável: pasta "AuditReports" ao lado do assembly de testes (existe em qualquer máquina/CI),
-        // em vez de um caminho absoluto fixo de uma máquina específica.
+        // Caminho portÃ¡vel: pasta "AuditReports" ao lado do assembly de testes (existe em qualquer mÃ¡quina/CI),
+        // em vez de um caminho absoluto fixo de uma mÃ¡quina especÃ­fica.
         var reportDir = Path.Combine(AppContext.BaseDirectory, "AuditReports");
         var reportPath = Path.Combine(reportDir, "endpoint_audit_report.md");
 
@@ -239,13 +239,13 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         {
             Directory.CreateDirectory(reportDir);
             File.WriteAllText(reportPath, sb.ToString());
-            output.WriteLine($"Auditoria gravada em {reportPath}. Total de operações: {_results.Count}");
+            output.WriteLine($"Auditoria gravada em {reportPath}. Total de operaÃ§Ãµes: {_results.Count}");
         }
         catch (Exception ex)
         {
-            // A gravação do relatório é só um artefato informativo; não deve derrubar o teste
-            // se o ambiente de execução não permitir escrita em disco (ex.: alguns runners de CI).
-            output.WriteLine($"Não foi possível gravar o relatório em disco ({ex.Message}). Total de operações: {_results.Count}");
+            // A gravaÃ§Ã£o do relatÃ³rio Ã© sÃ³ um artefato informativo; nÃ£o deve derrubar o teste
+            // se o ambiente de execuÃ§Ã£o nÃ£o permitir escrita em disco (ex.: alguns runners de CI).
+            output.WriteLine($"NÃ£o foi possÃ­vel gravar o relatÃ³rio em disco ({ex.Message}). Total de operaÃ§Ãµes: {_results.Count}");
         }
     }
 }

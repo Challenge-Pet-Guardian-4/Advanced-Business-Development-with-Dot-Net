@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
 
@@ -8,16 +9,33 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class PetController(IPetService petService, ILogger<PetController> logger) : ControllerBase
+public class PetController(
+    IPetService petService,
+    IPetQueryService petQueryService,
+    ILogger<PetController> logger) : ApiControllerBase
 {
-    /// <summary>Lista todos os pets.</summary>
-    /// <response code="200">Lista retornada com sucesso.</response>
+    /// <summary>Lista pets com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
+    /// <remarks>Exemplo: <c>/api/pet?page=1&amp;pageSize=10&amp;sortBy=Nome&amp;sortDir=desc&amp;nome=re&amp;porte=Medio</c></remarks>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<PetResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GetAll([FromQuery] PageQuery page, [FromQuery] PetFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/pet: Listando todos os pets.");
-        return Ok(petService.GetAll());
+        logger.LogInformation("HTTP GET /api/pet: pesquisando pets (página {Page}, tamanho {PageSize}).", page.Page, page.PageSize);
+        var resultado = petQueryService.Search(page, filter);
+
+        return Ok(Paginar(resultado, nameof(GetAll), numero => new
+        {
+            page = numero,
+            pageSize = resultado.PageSize,
+            sortBy = page.SortBy,
+            sortDir = page.SortDir,
+            nome = filter.Nome,
+            racaId = filter.RacaId,
+            porte = filter.Porte,
+            sexo = filter.Sexo,
+            castrado = filter.Castrado
+        }, ComLinks));
     }
 
     /// <summary>Obtém um pet pelo Id.</summary>
@@ -33,7 +51,7 @@ public class PetController(IPetService petService, ILogger<PetController> logger
             logger.LogWarning("HTTP GET /api/pet/{Id}: Pet não encontrado.", id);
             return NotFound();
         }
-        return Ok(pet);
+        return Ok(ComLinks(pet));
     }
 
     /// <summary>Lista todos os pets de uma raça.</summary>
@@ -42,13 +60,10 @@ public class PetController(IPetService petService, ILogger<PetController> logger
     public IActionResult GetByRaca(Guid racaId)
     {
         logger.LogInformation("HTTP GET /api/pet/by-raca/{RacaId}: Buscando pets por raça.", racaId);
-        return Ok(petService.GetByRacaId(racaId));
+        return Ok(petService.GetByRacaId(racaId).Select(ComLinks).ToList());
     }
 
-    /// <summary>
-    /// Retorna a linha do tempo histórica unificada de um pet.
-    /// Passou de Atendimentos+Tarefas para Historico+Tarefas concluídas.
-    /// </summary>
+    /// <summary>Linha do tempo histórica unificada de um pet (Historico + Tarefas concluídas).</summary>
     [HttpGet("{id:guid}/historico")]
     [ProducesResponseType(typeof(IReadOnlyList<PetHistoricoItemResponse>), StatusCodes.Status200OK)]
     public IActionResult GetHistorico(Guid id)
@@ -64,14 +79,9 @@ public class PetController(IPetService petService, ILogger<PetController> logger
     public IActionResult Create([FromBody] PetRequest request)
     {
         logger.LogInformation("HTTP POST /api/pet: Iniciando cadastro do pet '{Nome}'.", request.Nome);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/pet: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = petService.Create(request);
         logger.LogInformation("HTTP POST /api/pet: Pet {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza um pet existente.</summary>
@@ -82,19 +92,13 @@ public class PetController(IPetService petService, ILogger<PetController> logger
     public IActionResult Update(Guid id, [FromBody] PetRequest request)
     {
         logger.LogInformation("HTTP PUT /api/pet/{Id}: Atualizando pet '{Nome}'.", id, request.Nome);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/pet/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = petService.Update(id, request);
         if (updated is null)
         {
             logger.LogWarning("HTTP PUT /api/pet/{Id}: Pet não encontrado para atualização.", id);
             return NotFound();
         }
-        logger.LogInformation("HTTP PUT /api/pet/{Id}: Pet atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove um pet pelo Id.</summary>
@@ -109,7 +113,20 @@ public class PetController(IPetService petService, ILogger<PetController> logger
             logger.LogWarning("HTTP DELETE /api/pet/{Id}: Pet não encontrado para exclusão.", id);
             return NotFound();
         }
-        logger.LogInformation("HTTP DELETE /api/pet/{Id}: Pet excluído com sucesso.", id);
         return NoContent();
     }
+
+    private PetResponse ComLinks(PetResponse p) => p with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = p.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = p.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = p.Id }),
+            LinkTo("historico", "GET", nameof(GetHistorico), new { id = p.Id }),
+            LinkTo("tarefas", "GET", "GetByPet", new { petId = p.Id }, "Tarefa"),
+            LinkTo("trilhas", "GET", "GetByPet", new { petId = p.Id }, "Trilha"),
+            LinkTo("raca", "GET", "GetById", new { id = p.RacaId }, "Raca")
+        ]
+    };
 }

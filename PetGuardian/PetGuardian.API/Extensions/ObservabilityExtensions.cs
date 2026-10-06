@@ -33,12 +33,9 @@ public static class ObservabilityExtensions
 
         services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy("Processo da API ativo e operacional."), tags: ["live"])
-            .AddCheck<OracleDbHealthCheck>(
-                "oracle-database",
-                tags: ["ready", "db"])
-            .AddCheck<ViaCepHealthCheck>(
-                "external-service-viacep",
-                tags: ["ready", "external"]);
+            .AddCheck<OracleDbHealthCheck>("oracle-database", tags: ["ready", "db"])
+            .AddCheck<MongoDbHealthCheck>("mongodb", tags: ["ready", "db"])          // <- NOVO
+            .AddCheck<ViaCepHealthCheck>("external-service-viacep", tags: ["ready", "external"]);
 
         // ----- OpenTelemetry: Tracing + Métricas -----
         services.AddOpenTelemetry()
@@ -77,21 +74,21 @@ public static class ObservabilityExtensions
         app.MapHealthChecks("/health", new HealthCheckOptions
         {
             ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
-        });
+        }).AllowAnonymous();
 
         // /health/ready -> só os checks marcados como "ready" (banco + serviços externos)
         app.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains("ready"),
             ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
-        });
+        }).AllowAnonymous();
 
         // /health/live -> liveness simples, sem dependências externas (check do processo)
         app.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains("live"),
             ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
-        });
+        }).AllowAnonymous();
 
         return app;
     }

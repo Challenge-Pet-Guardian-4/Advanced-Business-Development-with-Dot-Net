@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -10,7 +10,7 @@ namespace PetGuardian.IntegrationTests.Endpoints;
 [Collection(IntegrationTestCollection.Name)]
 public class TrilhaControllerIntegrationTests(CustomWebApplicationFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     private async Task<PetResponse> CriarPetAuxiliarAsync(string nome)
     {
@@ -36,7 +36,7 @@ public class TrilhaControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var pet = await CriarPetAuxiliarAsync("Pet Trilha Post");
-        var request = new TrilhaRequest("Trilha de Adestramento Básico", "Desc Trilha", pet.Id);
+        var request = new TrilhaRequest("Trilha de Adestramento BÃ¡sico", "Desc Trilha", pet.Id);
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/trilha", request);
@@ -45,7 +45,7 @@ public class TrilhaControllerIntegrationTests(CustomWebApplicationFactory factor
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var trilha = await response.Content.ReadFromJsonAsync<TrilhaResponse>();
         Assert.NotNull(trilha);
-        Assert.Equal("Trilha de Adestramento Básico", trilha.Nome);
+        Assert.Equal("Trilha de Adestramento BÃ¡sico", trilha.Nome);
         Assert.Equal(pet.Id, trilha.PetId);
     }
 
@@ -54,7 +54,7 @@ public class TrilhaControllerIntegrationTests(CustomWebApplicationFactory factor
     {
         // Arrange
         var pet = await CriarPetAuxiliarAsync("Pet Trilha Get");
-        var postRes = await _client.PostAsJsonAsync("/api/trilha", new TrilhaRequest("Trilha Nutrição", "Desc", pet.Id));
+        var postRes = await _client.PostAsJsonAsync("/api/trilha", new TrilhaRequest("Trilha NutriÃ§Ã£o", "Desc", pet.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<TrilhaResponse>();
         Assert.NotNull(criado);
 
@@ -91,13 +91,13 @@ public class TrilhaControllerIntegrationTests(CustomWebApplicationFactory factor
         Assert.NotNull(criado);
 
         // Act
-        var putRes = await _client.PutAsJsonAsync($"/api/trilha/{criado.Id}", new TrilhaUpdateRequest("Trilha Comportamento Avançado", "Nova Desc"));
+        var putRes = await _client.PutAsJsonAsync($"/api/trilha/{criado.Id}", new TrilhaUpdateRequest("Trilha Comportamento AvanÃ§ado", "Nova Desc"));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, putRes.StatusCode);
         var atualizado = await putRes.Content.ReadFromJsonAsync<TrilhaResponse>();
         Assert.NotNull(atualizado);
-        Assert.Equal("Trilha Comportamento Avançado", atualizado.Nome);
+        Assert.Equal("Trilha Comportamento AvanÃ§ado", atualizado.Nome);
     }
 
     [Fact]

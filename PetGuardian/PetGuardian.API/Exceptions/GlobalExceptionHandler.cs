@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Oracle.ManagedDataAccess.Client;
 using PetGuardian.API.Middleware;
 using PetGuardian.Domain.Exceptions;
+using MongoDB.Driver;
 
 namespace PetGuardian.API.Exceptions;
 
@@ -64,6 +65,8 @@ public sealed class GlobalExceptionHandler(
         UnauthorizedAccessException e => (StatusCodes.Status401Unauthorized,"Não autorizado",                       e.Message),
         DbUpdateException e           => (StatusCodes.Status409Conflict,    "Conflito de dados no banco de dados",  e.InnerException?.Message ?? e.Message),
         OracleException e             => (StatusCodes.Status502BadGateway,  "Banco de dados indisponível",          e.Message),
+        MongoException e              => (StatusCodes.Status502BadGateway,   "Banco de documentos indisponível",     e.Message),
+        TimeoutException e            => (StatusCodes.Status504GatewayTimeout, "Tempo esgotado ao acessar dependência", e.Message),
         _                             => MapUnhandled(environment, exception)
     };
 

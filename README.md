@@ -359,6 +359,14 @@ Navegue até a pasta da solução e execute:
 dotnet user-secrets set "ConnectionStrings:PetGuardianOracle" "User Id=RM561432;Password=301006;Data Source=oracle.fiap.com.br:1521/orcl;" --project .\PetGuardian.API
 ```
 
+OU alternativamente (não há senha fixa):
+
+```powershell
+dotnet user-secrets set "Jwt:SecretKey" "<uma-chave-aleatoria-com-mais-de-32-caracteres>" --project .\PetGuardian.API
+dotnet user-secrets set "MongoDb:ConnectionString" "mongodb://localhost:27017" --project .\PetGuardian.API
+dotnet user-secrets set "ConnectionStrings:PetGuardianOracle" "User Id=...;Password=...;Data Source=...;" --project .\PetGuardian.API
+```
+
 #### 2. Via Variável de Ambiente (PowerShell / Terminal da Sessão)
 ```powershell
 # Configurar a variável para a sessão atual do terminal PowerShell:
@@ -637,3 +645,66 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 | `GET` | `/health` | Visão completa da saúde da API, banco Oracle e serviço ViaCEP em JSON estruturado |
 | `GET` | `/health/ready` | Readiness probe: verifica conectividade com Oracle (`CanConnectAsync`) e ViaCEP |
 | `GET` | `/health/live` | Liveness probe: verifica se o processo da aplicação ASP.NET Core está ativo |
+
+## 18. 🔐 Autenticação e Autorização (JWT + papéis)
+
+Toda rota exige `Authorization: Bearer {token}`, exceto `POST /api/auth/login`, `POST /login`, `POST /api/usuario` (cadastro), `POST /api/telefone` (cadastro) e `/health*`.
+
+| Perfil | Pode |
+| :--- | :--- |
+| **Comum / Premium** | Ler tudo; criar/editar seus pets, tarefas, vínculos; editar/excluir **a si mesmo** |
+| **Admin** | Tudo, incluindo listar usuários, escrever em Estado/Cidade/Bairro/Raça/Status e sincronizar o catálogo |
+
+O perfil `Admin` só pode ser atribuído por outro Admin (anti-escalada de privilégio).
+
+## 19. 📄 Paginação, ordenação e filtros
+
+`GET /api/pet`, `/api/tarefa`, `/api/usuario`, `/api/historico` e `/api/catalogo/trilhas`:
+
+`?page=1&pageSize=10&sortBy=Nome&sortDir=desc` + filtros (`nome`, `racaId`, `porte`, `petId`, `concluida`, `prazoDe`, ...).
+`pageSize` máx. 100; `sortBy` inválido (ou sensível, como `Senha`) → `400`.
+
+## 20. 🔗 HATEOAS
+
+Respostas de consulta trazem `_links` (`self`, `update`, `delete`, recursos relacionados) e a coleção traz `self/first/prev/next/last`.
+
+```json
+{
+  "items": [{ "id": "…", "nome": "Thor",
+    "_links": [
+      { "href": "http://…/api/pet/{id}", "rel": "self", "method": "GET" },
+      { "href": "http://…/api/pet/{id}/historico", "rel": "historico", "method": "GET" }
+    ] }],
+  "page": 1, "pageSize": 10, "totalCount": 3, "totalPages": 1,
+  "_links": [{ "href": "http://…/api/pet?page=1&pageSize=10", "rel": "self", "method": "GET" }]
+}
+```
+
+## 21. 🍃 MongoDB (persistência poliglota)
+
+- **Oracle** continua sendo a fonte transacional (ACID, FKs, usuários, rede de cuidado).
+- **MongoDB** guarda o **catálogo de trilhas** (`trilhas_educativas`): cada trilha é **um documento** com `modulos[]` e `aulas[]` embutidos, o que dá leitura sem JOIN.
+- `POST /api/catalogo/trilhas/sincronizar` (Admin) exporta Trilha→Módulo→Aula do Oracle para o Mongo, de forma idempotente (upsert por `trilha_id_origem` + remoção dos órfãos).
+- `GET /api/catalogo/trilhas` (paginado, busca textual) e `GET /api/catalogo/trilhas/{trilhaId}`.
+- Health check `mongodb` em `/health` e `/health/ready`.
+
+## 22. ⚙️ Variáveis de ambiente (nada de segredo no repositório)
+
+`ConnectionStrings__PetGuardianOracle`, `MongoDb__ConnectionString`, `Jwt__SecretKey` (≥ 32 caracteres). Veja `.env.example`.
+
+## 23. 🏛️ Diagrama de arquitetura
+
+```mermaid
+flowchart LR
+    Mobile[App Mobile] -->|HTTPS + JWT| API
+    subgraph Solução .NET 10
+        API["PetGuardian.API<br/>Controllers · Auth · Middlewares · Health"] --> APP["PetGuardian.Application<br/>Serviços · DTOs · Contratos"]
+        APP --> DOM["PetGuardian.Domain<br/>Entidades · Regras"]
+        INF["PetGuardian.Infrastructure<br/>EF Core · MongoDB Driver"] -. implementa contratos .-> APP
+        API --> INF
+    end
+    INF --> ORA[(Oracle)]
+    INF --> MONGO[(MongoDB)]
+    APP -->|HttpClient| VIACEP[ViaCEP]
+    API -->|/metrics| PROM[Prometheus]
+```
