@@ -23,17 +23,17 @@ public class UsuarioController(
     [ProducesResponseType(typeof(PagedResponse<UsuarioResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public IActionResult GetAll([FromQuery] PageQuery page, [FromQuery] UsuarioFilter filter)
+    public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] UsuarioFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/usuario: pesquisando usuários (página {Page}, tamanho {PageSize}).", page.Page, page.PageSize);
-        var resultado = usuarioQueryService.Search(page, filter);
+        logger.LogInformation("HTTP GET /api/usuario: pesquisando usuários (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
+        var resultado = usuarioQueryService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
             pageSize = resultado.PageSize,
-            sortBy = page.SortBy,
-            sortDir = page.SortDir,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
             nome = filter.Nome,
             email = filter.Email,
             role = filter.Role

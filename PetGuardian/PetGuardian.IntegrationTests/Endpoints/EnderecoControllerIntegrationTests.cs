@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.IntegrationTests.Fixtures;
@@ -26,7 +26,7 @@ public class EnderecoControllerIntegrationTests(CustomWebApplicationFactory fact
         Assert.NotNull(endereco);
         Assert.Equal("01001000", endereco.Cep);
         Assert.Equal("50", endereco.Numero);
-        Assert.Equal("PraÃ§a da SÃ©", endereco.Rua);
+        Assert.Equal("Praça da Sé", endereco.Rua);
         Assert.NotEqual(Guid.Empty, endereco.BairroId);
     }
 

@@ -18,17 +18,17 @@ public class HistoricoController(
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<HistoricoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult GetAll([FromQuery] PageQuery page, [FromQuery] HistoricoFilter filter)
+    public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] HistoricoFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/historico: pesquisando históricos (página {Page}, tamanho {PageSize}).", page.Page, page.PageSize);
-        var resultado = historicoQueryService.Search(page, filter);
+        logger.LogInformation("HTTP GET /api/historico: pesquisando históricos (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
+        var resultado = historicoQueryService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
             pageSize = resultado.PageSize,
-            sortBy = page.SortBy,
-            sortDir = page.SortDir,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
             petId = filter.PetId,
             tipoHist = filter.TipoHist,
             dataDe = filter.DataDe,

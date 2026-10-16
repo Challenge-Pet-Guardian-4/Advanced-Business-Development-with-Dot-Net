@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetGuardian.API.Security;
 using PetGuardian.Application.Common;
@@ -20,17 +20,17 @@ public class TrilhaCatalogoController(
     [ProducesResponseType(typeof(PagedResponse<TrilhaCatalogoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAll(
-        [FromQuery] PageQuery page, [FromQuery] TrilhaCatalogoFilter filter, CancellationToken cancellationToken)
+        [FromQuery] PageQuery query, [FromQuery] TrilhaCatalogoFilter filter, CancellationToken cancellationToken)
     {
-        logger.LogInformation("HTTP GET /api/catalogo/trilhas: pesquisando catálogo (página {Page}).", page.Page);
-        var resultado = await catalogoService.BuscarAsync(page, filter, cancellationToken);
+        logger.LogInformation("HTTP GET /api/catalogo/trilhas: pesquisando catálogo (página {Page}).", query.Page);
+        var resultado = await catalogoService.BuscarAsync(query, filter, cancellationToken);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
             pageSize = resultado.PageSize,
-            sortBy = page.SortBy,
-            sortDir = page.SortDir,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
             termo = filter.Termo,
             petId = filter.PetId,
             dificuldade = filter.Dificuldade

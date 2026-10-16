@@ -1,7 +1,7 @@
 # 🐾 PetGuardian — Plataforma de Cuidado Colaborativo e Saúde Animal
 
 > **Advanced Business Development with .NET** — FIAP (2º Ano ADS / 2TDSPG — Challenge 2026 - 2º Semestre)  
-> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **DRY** e **Clean Code**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **301 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
+> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **DRY** e **Clean Code**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **340 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
 
 ---
 
@@ -15,7 +15,7 @@
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing%20%26%20Metrics-4A154B?logo=opentelemetry&logoColor=white&style=for-the-badge)
 ![JWT](https://img.shields.io/badge/JWT-Bearer%20HS256-orange?style=for-the-badge)
 ![BCrypt](https://img.shields.io/badge/BCrypt-Security%20%26%20Salt-green?style=for-the-badge)
-![xUnit](https://img.shields.io/badge/xUnit-301%20Tests%20Passing-brightgreen?style=for-the-badge)
+![xUnit](https://img.shields.io/badge/xUnit-340%20Tests%20Passing-brightgreen?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white&style=for-the-badge)
 
 ---
@@ -235,9 +235,9 @@ A API expõe endpoints estruturados para monitoramento de liveness e readiness d
 
 ---
 
-## 🧪 Suíte de Testes Automatizados (301 Testes / Padrão AAA)
+## 🧪 Suíte de Testes Automatizados (340 Testes / Padrão AAA)
 
-A solução conta com **301 testes automatizados** distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura estabelece uma **simetria 1:1 perfeita** em todas as camadas (16 Entidades no Domínio, 16 Serviços na Aplicação e 17 Controllers na API com o módulo de autenticação).
+A solução conta com **340 testes automatizados** distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura estabelece uma **simetria 1:1 perfeita** em todas as camadas (16 Entidades no Domínio, 16 Serviços na Aplicação e 17 Controllers na API com o módulo de autenticação).
 
 ### 🧩 Compartilhamento de Contexto com Fixtures e Collection Fixtures (15 pts):
 A solução atende ao requisito formal de organização e compartilhamento de contexto via xUnit:
@@ -251,7 +251,7 @@ A solução atende ao requisito formal de organização e compartilhamento de co
    * **Ciclo de Vida Compartilhado:** Todas as 20 classes de testes de integração compartilham o mesmo contexto HTTP através de `[Collection(IntegrationTestCollection.Name)]`, eliminando o overhead de subir múltiplos servidores e assegurando isolamento transacional.
 
 ### Organização das Suítes de Teste:
-1. **PetGuardian.UnitTests (191 testes):**
+1. **PetGuardian.UnitTests (206 testes):**
    * **Domínio (17 Classes / Validação de Invariantes & Criptografia):**
      * `PetTests` (Invariantes de nome, datas de nascimento, castração e cálculo de idade)
      * `UsuarioTests` (Validações de tamanho de nome, e-mail, senha mínima, salt e BCrypt)
@@ -275,7 +275,7 @@ A solução atende ao requisito formal de organização e compartilhamento de co
      * `EnderecoServiceTests`, `BairroServiceTests`, `CidadeServiceTests`, `EstadoServiceTests`
      * `StatusServiceTests`, `RacaServiceTests`, `TelefoneServiceTests`, `HistoricoServiceTests`
      * `UsuarioEnderecoServiceTests`, `TrilhaServiceTests`, `ModuloServiceTests`, `AulaServiceTests`
-2. **PetGuardian.IntegrationTests (110 testes):**
+2. **PetGuardian.IntegrationTests (134 testes):**
    * **Autenticação & Segurança JWT:**
      * `AuthControllerIntegrationTests` (Login 200 com JWT, senha incorreta 401, e-mail inexistente 401, rota alternativa `/login` 200, `/api/auth/me` sem token 401, `/api/auth/me` com token válido 200, `/api/auth/me` com token inválido 401).
    * **16 Suítes Dedicadas de Controllers (1:1 com a API):** Cada um dos 16 controllers da API possui sua própria classe de teste independente validando respostas de sucesso (200, 201, 204) e tratamento estrito de erros (400 Bad Request com validação de payload/domínio, 404 Not Found):
@@ -305,17 +305,17 @@ A solução atende ao requisito formal de organização e compartilhamento de co
 Para executar toda a suíte de testes (Unitários e de Integração) a partir da raiz da solução:
 
 ```powershell
-# Executar todos os 301 testes da solução com relatório detalhado
+# Executar todos os 340 testes da solução com relatório detalhado
 dotnet test PetGuardian.sln --logger "console;verbosity=normal"
 ```
 
 Para executar separadamente por projeto:
 
 ```powershell
-# Executar os 191 testes unitários (Domínio + Aplicação com Moq e TestFixture)
+# Executar os 206 testes unitários (Domínio + Aplicação com Moq e TestFixture)
 dotnet test PetGuardian.UnitTests\PetGuardian.UnitTests.csproj
 
-# Executar os 110 testes de integração (WebApplicationFactory e IntegrationTestCollection)
+# Executar os 134 testes de integração (WebApplicationFactory e IntegrationTestCollection)
 dotnet test PetGuardian.IntegrationTests\PetGuardian.IntegrationTests.csproj
 
 # Executar a auditoria completa de todas as 99 operações HTTP da API
@@ -324,9 +324,9 @@ dotnet test PetGuardian.IntegrationTests\PetGuardian.IntegrationTests.csproj --f
 
 ### Resumo da Execução:
 ```text
-Passed!  - Failed: 0, Passed: 191, Skipped: 0, Total: 191 - PetGuardian.UnitTests.dll (net10.0)
-Passed!  - Failed: 0, Passed: 110, Skipped: 0, Total: 110 - PetGuardian.IntegrationTests.dll (net10.0)
-Total Geral: 301 Testes Passando (100% de sucesso)
+Passed!  - Failed: 0, Passed: 206, Skipped: 0, Total: 206 - PetGuardian.UnitTests.dll (net10.0)
+Passed!  - Failed: 0, Passed: 134, Skipped: 0, Total: 134 - PetGuardian.IntegrationTests.dll (net10.0)
+Total Geral: 340 Testes Passando (100% de sucesso)
 ```
 
 ---

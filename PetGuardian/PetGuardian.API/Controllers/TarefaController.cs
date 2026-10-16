@@ -19,17 +19,17 @@ public class TarefaController(
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<TarefaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult GetAll([FromQuery] PageQuery page, [FromQuery] TarefaFilter filter)
+    public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] TarefaFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/tarefa: pesquisando tarefas (página {Page}, tamanho {PageSize}).", page.Page, page.PageSize);
-        var resultado = tarefaQueryService.Search(page, filter);
+        logger.LogInformation("HTTP GET /api/tarefa: pesquisando tarefas (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
+        var resultado = tarefaQueryService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
             pageSize = resultado.PageSize,
-            sortBy = page.SortBy,
-            sortDir = page.SortDir,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
             titulo = filter.Titulo,
             petId = filter.PetId,
             usuarioId = filter.UsuarioId,
