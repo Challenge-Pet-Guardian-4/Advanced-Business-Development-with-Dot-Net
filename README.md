@@ -347,38 +347,16 @@ Total Geral: 342 Testes Passando (100% de sucesso)
 
 ---
 
-### Opção B: Execução Local via .NET CLI & Conexão com o Banco de Dados
+### Opção B: Execução Local via .NET CLI & Conexão com os Bancos de Dados
 
-Para conectar ao banco de dados Oracle oficial da FIAP para avaliação, utilize a connection string configurada com as credenciais da equipe:
-
-#### 1. Via `dotnet user-secrets` (Recomendado para Execução Local)
-Navegue até a pasta da solução e execute:
-```powershell
-# Configurar a connection string oficial do banco Oracle FIAP nos secrets locais:
-dotnet user-secrets set "ConnectionStrings:PetGuardianOracle" "User Id=RM561432;Password=301006;Data Source=oracle.fiap.com.br:1521/orcl;" --project .\PetGuardian.API
-```
-
-OU alternativamente (não há senha fixa):
+Para conectar ao banco de dados Oracle oficial da FIAP e ao MongoDB Atlas, configure as credenciais da equipe conforme detalhado na [Seção 22](#22--credenciais-e-configuração-de-ambiente-env--net-user-secrets) (via arquivo `.env` ou `dotnet user-secrets`):
 
 ```powershell
-dotnet user-secrets set "Jwt:SecretKey" "<uma-chave-aleatoria-com-mais-de-32-caracteres>" --project .\PetGuardian.API
-dotnet user-secrets set "MongoDb:ConnectionString" "mongodb://localhost:27017" --project .\PetGuardian.API
-dotnet user-secrets set "ConnectionStrings:PetGuardianOracle" "User Id=...;Password=...;Data Source=...;" --project .\PetGuardian.API
-```
+# 1. Configurar credenciais via .env (ou via dotnet user-secrets — ver Seção 22)
+cp .env.example .env
 
-#### 2. Via Variável de Ambiente (PowerShell / Terminal da Sessão)
-```powershell
-# Configurar a variável para a sessão atual do terminal PowerShell:
-$env:ConnectionStrings__PetGuardianOracle = "User Id=RM561432;Password=301006;Data Source=oracle.fiap.com.br:1521/orcl;"
-
-# Executar a API:
-dotnet run --project .\PetGuardian.API
-```
-
-#### 3. Via Variável de Ambiente (Bash / Linux / MacOS)
-```bash
-export ConnectionStrings__PetGuardianOracle="User Id=RM561432;Password=301006;Data Source=oracle.fiap.com.br:1521/orcl;"
-dotnet run --project ./PetGuardian.API
+# 2. Executar a API (.NET 10):
+dotnet run --project .\PetGuardian\PetGuardian.API
 ```
 
 #### 4. Validar Conectividade com o Banco de Dados em Execução
@@ -688,9 +666,77 @@ Respostas de consulta trazem `_links` (`self`, `update`, `delete`, recursos rela
 - As consultas de `Aula` (`/api/aula`, `/api/aula/{id}`, `/api/aula/by-modulo/{moduloId}`) enriquecem automaticamente o campo `conteudo` a partir do MongoDB Atlas (em lote ou individualmente) e o `DELETE /api/aula/{id}` remove em cascata o documento correspondente.
 - Health check `mongodb` em `/health` e `/health/ready`.
 
-## 22. ⚙️ Variáveis de ambiente (nada de segredo no repositório)
+## 22. 🔐 Credenciais e Configuração de Ambiente (.env & .NET User Secrets)
 
-`ORACLE_APP_USER`, `ORACLE_APP_PASSWORD`, `ORACLE_DATA_SOURCE`, `MONGODB_URI`, `MONGODB_DATABASE`, `JWT_SECRET_KEY` (≥ 32 caracteres). Veja `.env.example`.
+Para executar a aplicação com conectividade total aos bancos corporativos (**Oracle Database 19c** e **MongoDB Atlas NoSQL**), a aplicação suporta nativamente duas formas padronizadas de configuração:
+
+### Opção 1: Via Arquivo `.env` (Recomendado e Automático)
+Crie um arquivo `.env` na raiz da solução ou dentro de `PetGuardian/PetGuardian.API/` (baseado no template [`.env.example`](.env.example)) com as credenciais oficiais da avaliação:
+
+```env
+# ==============================================================================
+# Credenciais Oficiais PetGuardian — Challenge 2026 (FIAP)
+# ==============================================================================
+
+# 1. Oracle Database 19c (FIAP)
+ORACLE_APP_USER=rm566422
+ORACLE_APP_PASSWORD=201006
+ORACLE_DATA_SOURCE=oracle.fiap.com.br:1521/ORCL
+
+# 2. MongoDB Atlas (Cloud NoSQL — Coleção conteudos_aula)
+MONGODB_URI=mongodb+srv://enzookuizumifiap_db_user:PAEdhlPTE5QRMzjC@petguardian.agoderb.mongodb.net/?retryWrites=true&w=majority&appName=PetGuardian
+MONGODB_DATABASE=petguardian
+
+# 3. JWT Secret Key (RFC 7519 — HS256, mínimo 32 caracteres)
+JWT_SECRET_KEY=PetGuardian-Super-Secret-Jwt-Key-Sprint4-Fiap-2026!
+```
+
+> **Nota:** O `Program.cs` carrega o arquivo `.env` automaticamente no startup da aplicação através do helper `LoadDotEnv()`.
+
+---
+
+### Opção 2: Via .NET User Secrets (`dotnet user-secrets`)
+Para gerenciar as credenciais no perfil local do desenvolvedor de forma segura via CLI do .NET (sem arquivos locais), execute a partir da raiz da solução:
+
+```powershell
+# 1. Connection string do Oracle Database 19c (FIAP):
+dotnet user-secrets set "ConnectionStrings:PetGuardianOracle" "User Id=rm566422;Password=201006;Data Source=oracle.fiap.com.br:1521/ORCL;" --project .\PetGuardian\PetGuardian.API
+
+# 2. Conexão e Banco do MongoDB Atlas (NoSQL):
+dotnet user-secrets set "MongoDb:ConnectionString" "mongodb+srv://enzookuizumifiap_db_user:PAEdhlPTE5QRMzjC@petguardian.agoderb.mongodb.net/?retryWrites=true&w=majority&appName=PetGuardian" --project .\PetGuardian\PetGuardian.API
+dotnet user-secrets set "MongoDb:DatabaseName" "petguardian" --project .\PetGuardian\PetGuardian.API
+
+# 3. Chave Secreta de Assinatura JWT (HS256):
+dotnet user-secrets set "Jwt:SecretKey" "PetGuardian-Super-Secret-Jwt-Key-Sprint4-Fiap-2026!" --project .\PetGuardian\PetGuardian.API
+```
+
+---
+
+### Opção 3: Via Variáveis de Ambiente da Sessão (PowerShell / Bash)
+
+**PowerShell:**
+```powershell
+$env:ORACLE_APP_USER = "rm566422"
+$env:ORACLE_APP_PASSWORD = "201006"
+$env:ORACLE_DATA_SOURCE = "oracle.fiap.com.br:1521/ORCL"
+$env:MONGODB_URI = "mongodb+srv://enzookuizumifiap_db_user:PAEdhlPTE5QRMzjC@petguardian.agoderb.mongodb.net/?retryWrites=true&w=majority&appName=PetGuardian"
+$env:MONGODB_DATABASE = "petguardian"
+$env:JWT_SECRET_KEY = "PetGuardian-Super-Secret-Jwt-Key-Sprint4-Fiap-2026!"
+
+dotnet run --project .\PetGuardian\PetGuardian.API
+```
+
+**Bash / Linux / macOS:**
+```bash
+export ORACLE_APP_USER="rm566422"
+export ORACLE_APP_PASSWORD="201006"
+export ORACLE_DATA_SOURCE="oracle.fiap.com.br:1521/ORCL"
+export MONGODB_URI="mongodb+srv://enzookuizumifiap_db_user:PAEdhlPTE5QRMzjC@petguardian.agoderb.mongodb.net/?retryWrites=true&w=majority&appName=PetGuardian"
+export MONGODB_DATABASE="petguardian"
+export JWT_SECRET_KEY="PetGuardian-Super-Secret-Jwt-Key-Sprint4-Fiap-2026!"
+
+dotnet run --project ./PetGuardian/PetGuardian.API
+```
 
 ## 23. 🏛️ Diagrama de Arquitetura
 
