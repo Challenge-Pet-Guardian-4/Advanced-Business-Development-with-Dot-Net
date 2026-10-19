@@ -15,14 +15,10 @@ public class AuthControllerIntegrationTests(CustomWebApplicationFactory factory)
 
     private async Task<(string Email, string Senha, Guid UsuarioId)> CriarUsuarioTesteAsync()
     {
-        var telPost = await _client.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "987654321"));
-        Assert.Equal(HttpStatusCode.Created, telPost.StatusCode);
-        var tel = await telPost.Content.ReadFromJsonAsync<TelefoneResponse>();
-        Assert.NotNull(tel);
-
         var email = $"auth_{Guid.NewGuid():N}"[..25] + "@teste.com";
         var senha = "senhaSegura123";
-        var userPost = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Usuario Auth Teste", email, senha, RoleUsuario.Comum, tel.Id));
+        var userPost = await _client.PostAsJsonAsync("/api/usuario",
+            new UsuarioRequest("Usuario Auth Teste", email, senha, RoleUsuario.Comum, "11", "987654321", new EnderecoRequest("01001-000", "100")));
         Assert.Equal(HttpStatusCode.Created, userPost.StatusCode);
         var usuario = await userPost.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(usuario);

@@ -14,10 +14,11 @@ public class AulaServiceTests(TestFixture fixture)
 {
     private readonly Mock<IAulaRepository> _aulaRepoMock = new();
     private readonly Mock<IModuloRepository> _moduloRepoMock = new();
+    private readonly Mock<IConteudoAulaRepository> _conteudoRepoMock = new();
     private readonly Mock<ILogger<AulaService>> _loggerMock = new();
 
     private AulaService CreateService() =>
-        new(_aulaRepoMock.Object, _moduloRepoMock.Object, _loggerMock.Object);
+        new(_aulaRepoMock.Object, _moduloRepoMock.Object, _conteudoRepoMock.Object, _loggerMock.Object);
 
     [Fact]
     public void Create_ModuloValido_DeveCriarAula()
@@ -25,7 +26,7 @@ public class AulaServiceTests(TestFixture fixture)
         // Arrange
         var service = CreateService();
         var moduloId = Guid.NewGuid();
-        var request = new AulaRequest("Aula 1: Sentar", "Descricao", 20, "Facil", "Conteudo", false, moduloId);
+        var request = new AulaRequest("Aula 1: Sentar", "Descricao", 20, "Facil", false, moduloId);
 
         _moduloRepoMock.Setup(m => m.ExistsById(moduloId)).Returns(true);
         _aulaRepoMock.Setup(a => a.Add(It.IsAny<Aula>())).Returns<Aula>(a => a);
@@ -45,7 +46,7 @@ public class AulaServiceTests(TestFixture fixture)
         // Arrange
         var service = CreateService();
         var moduloId = Guid.NewGuid();
-        var request = new AulaRequest("Aula 1", "Desc", 10, "Facil", "Texto", false, moduloId);
+        var request = new AulaRequest("Aula 1", "Desc", 10, "Facil", false, moduloId);
 
         _moduloRepoMock.Setup(m => m.ExistsById(moduloId)).Returns(false);
 
@@ -57,14 +58,17 @@ public class AulaServiceTests(TestFixture fixture)
     }
 
     [Fact]
-    public void GetByModuloId_ModuloComAulas_DeveRetornarLista()
+    public void GetByModuloId_ModuloComAulas_DeveRetornarListaEnriquecidaComConteudo()
     {
         // Arrange
         var service = CreateService();
         var moduloId = Guid.NewGuid();
         var aula = fixture.CriarAulaValida(moduloId);
+        var conteudo = new ConteudoAulaResponse("m1", aula.Id, "ARTIGO", "# Guia", [], DateTime.UtcNow);
 
         _aulaRepoMock.Setup(r => r.GetByModuloId(moduloId)).Returns([aula]);
+        _conteudoRepoMock.Setup(r => r.GetByAulaIdsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, ConteudoAulaResponse> { [aula.Id] = conteudo });
 
         // Act
         var result = service.GetByModuloId(moduloId);
@@ -72,10 +76,11 @@ public class AulaServiceTests(TestFixture fixture)
         // Assert
         Assert.Single(result);
         Assert.Equal("Aula 1: Sentar", result[0].Nome);
+        Assert.Equal("# Guia", result[0].Conteudo);
     }
 
     [Fact]
-    public void Delete_IdValido_DeveRetornarTrue()
+    public async Task DeleteAsync_IdValido_DeveRetornarTrueERemoverConteudoNoMongo()
     {
         // Arrange
         var service = CreateService();
@@ -83,10 +88,44 @@ public class AulaServiceTests(TestFixture fixture)
         _aulaRepoMock.Setup(r => r.Delete(id)).Returns(true);
 
         // Act
-        var resultado = service.Delete(id);
+        var resultado = await service.DeleteAsync(id);
 
         // Assert
         Assert.True(resultado);
         _aulaRepoMock.Verify(r => r.Delete(id), Times.Once);
+        _conteudoRepoMock.Verify(r => r.ExcluirPorAulaIdAsync(id, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_AulaInexistente_DeveRetornarFalseSemTocarNoMongo()
+    {
+        // Arrange
+        var service = CreateService();
+        var id = Guid.NewGuid();
+        _aulaRepoMock.Setup(r => r.Delete(id)).Returns(false);
+
+        // Act
+        var resultado = await service.DeleteAsync(id);
+
+        // Assert
+        Assert.False(resultado);
+        _conteudoRepoMock.Verify(r => r.ExcluirPorAulaIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_MongoIndisponivel_DeveManterExclusaoRelacional()
+    {
+        // Arrange
+        var service = CreateService();
+        var id = Guid.NewGuid();
+        _aulaRepoMock.Setup(r => r.Delete(id)).Returns(true);
+        _conteudoRepoMock.Setup(r => r.ExcluirPorAulaIdAsync(id, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException("mongo fora"));
+
+        // Act
+        var resultado = await service.DeleteAsync(id);
+
+        // Assert
+        Assert.True(resultado);
     }
 }

@@ -51,11 +51,6 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
     public IActionResult Create([FromBody] AulaRequest request)
     {
         logger.LogInformation("HTTP POST /api/aula: Cadastrando aula '{Nome}' para Módulo {ModuloId}.", request.Nome, request.ModuloId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/aula: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = aulaService.Create(request);
         logger.LogInformation("HTTP POST /api/aula: Aula {Id} cadastrada com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -69,11 +64,6 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
     public IActionResult Update(Guid id, [FromBody] AulaUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/aula/{Id}: Atualizando aula '{Nome}'.", id, request.Nome);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/aula/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = aulaService.Update(id, request);
         if (updated is null)
         {
@@ -88,10 +78,10 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         logger.LogInformation("HTTP DELETE /api/aula/{Id}: Excluindo aula.", id);
-        if (!aulaService.Delete(id))
+        if (!await aulaService.DeleteAsync(id, cancellationToken))
         {
             logger.LogWarning("HTTP DELETE /api/aula/{Id}: Aula não encontrada para exclusão.", id);
             return NotFound();

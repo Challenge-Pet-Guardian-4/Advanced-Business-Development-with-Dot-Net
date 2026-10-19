@@ -18,9 +18,10 @@ public class UsuarioTests(TestFixture fixture)
         var senha = "senhaForte123";
         var role = RoleUsuario.Premium;
         var telefoneId = Guid.NewGuid();
+        var enderecoId = Guid.NewGuid();
 
         // Act
-        var usuario = new Usuario(nome, email, senha, role, telefoneId);
+        var usuario = new Usuario(nome, email, senha, role, telefoneId, enderecoId);
 
         // Assert
         Assert.NotEqual(Guid.Empty, usuario.Id);
@@ -32,6 +33,7 @@ public class UsuarioTests(TestFixture fixture)
         Assert.NotEqual(senha, usuario.Senha);
         Assert.Equal(role, usuario.Role);
         Assert.Equal(telefoneId, usuario.TelefoneId);
+        Assert.Equal(enderecoId, usuario.EnderecoId);
     }
 
     [Theory]
@@ -99,10 +101,21 @@ public class UsuarioTests(TestFixture fixture)
     {
         // Act
         var ex = Assert.Throws<DomainException>(() =>
-            new Usuario("Nome", "email@teste.com", "senha123", RoleUsuario.Comum, Guid.Empty));
+            new Usuario("Nome", "email@teste.com", "senha123", RoleUsuario.Comum, Guid.Empty, Guid.NewGuid()));
 
         // Assert
         Assert.Equal("O usuário deve ter um telefone válido.", ex.Message);
+    }
+
+    [Fact]
+    public void Construtor_EnderecoIdVazio_DeveLancarDomainException()
+    {
+        // Act
+        var ex = Assert.Throws<DomainException>(() =>
+            new Usuario("Nome", "email@teste.com", "senha123", RoleUsuario.Comum, Guid.NewGuid(), Guid.Empty));
+
+        // Assert
+        Assert.Equal("O usuário deve ter um endereço válido.", ex.Message);
     }
 
     [Fact]

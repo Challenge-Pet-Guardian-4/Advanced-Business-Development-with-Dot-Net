@@ -37,7 +37,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public HttpClient CreateAuthenticatedClient(RoleUsuario role = RoleUsuario.Admin)
     {
         var token = _tokens.GetOrAdd(role, r => _tokenService.GerarToken(
-            new Usuario($"Teste {r}", $"teste.{r}@petguardian.com".ToLowerInvariant(), "SenhaTeste@123", r, Guid.NewGuid())));
+            new Usuario($"Teste {r}", $"teste.{r}@petguardian.com".ToLowerInvariant(), "SenhaTeste@123", r, Guid.NewGuid(), Guid.NewGuid())));
         return CreateClientWithToken(token);
     }
 
@@ -54,9 +54,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-
-        builder.UseSetting("Jwt:SecretKey", TestJwtSecret);
-        builder.UseSetting("MongoDb:ConnectionString", "mongodb://localhost:27017");
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
@@ -86,23 +83,20 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<PetGuardianContext>(options => options.UseInMemoryDatabase(_databaseName));
 
-            // ---- MongoDB: sem servidor real nos testes ----
             services.RemoveAll<IMongoDatabase>();
-            services.RemoveAll<ITrilhaCatalogoRepository>();
+            services.RemoveAll<IConteudoAulaRepository>();
             foreach (var hosted in services.Where(d =>
                          d.ServiceType == typeof(IHostedService) &&
                          d.ImplementationType == typeof(MongoIndexesInitializer)).ToList())
                 services.Remove(hosted);
 
-            // Health check do Mongo: ping simulado
             var mongoDb = new Mock<IMongoDatabase>();
             mongoDb.Setup(d => d.RunCommandAsync(
                     It.IsAny<Command<BsonDocument>>(), It.IsAny<ReadPreference>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new BsonDocument("ok", 1));
             services.AddSingleton(mongoDb.Object);
 
-            // Catálogo: implementação em memória (mesmo contrato do repositório Mongo)
-            services.AddSingleton<ITrilhaCatalogoRepository, InMemoryTrilhaCatalogoRepository>();
+            services.AddSingleton<IConteudoAulaRepository, InMemoryConteudoAulaRepository>();
 
             // Substitui IViaCepService por mock determinístico
             var viaCepDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IViaCepService));

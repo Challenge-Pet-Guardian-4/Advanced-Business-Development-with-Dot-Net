@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -28,15 +28,15 @@ public class UsuarioPetControllerIntegrationTests(CustomWebApplicationFactory fa
         var pet = await petPost.Content.ReadFromJsonAsync<PetResponse>();
         Assert.NotNull(pet);
 
-        var tel1 = await (await _client.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "911112222"))).Content.ReadFromJsonAsync<TelefoneResponse>();
+        var endReq = new EnderecoRequest("01001-000", "100");
+
         var user1Email = $"tutor1_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var user1Post = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Tutor Principal", user1Email, "senha123", RoleUsuario.Comum, tel1!.Id));
+        var user1Post = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Tutor Principal", user1Email, "senha123", RoleUsuario.Comum, "11", "911112222", endReq));
         var user1 = await user1Post.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(user1);
 
-        var tel2 = await (await _client.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "933334444"))).Content.ReadFromJsonAsync<TelefoneResponse>();
         var user2Email = $"tutor2_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var user2Post = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Co Cuidador", user2Email, "senha123", RoleUsuario.Comum, tel2!.Id));
+        var user2Post = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Co Cuidador", user2Email, "senha123", RoleUsuario.Comum, "11", "933334444", endReq));
         var user2 = await user2Post.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(user2);
 

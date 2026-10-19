@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
+using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
@@ -9,14 +10,17 @@ namespace PetGuardian.Application.Services.Implementations;
 /// Serviço de aplicação responsável pelo gerenciamento de aulas de capacitação vinculadas a módulos.
 /// </summary>
 public sealed class AulaService(
-    IAulaRepository       aulaRepository,
-    IModuloRepository     moduloRepository,
-    ILogger<AulaService>  logger) : IAulaService
+    IAulaRepository         aulaRepository,
+    IModuloRepository       moduloRepository,
+    IConteudoAulaRepository conteudoRepository,
+    ILogger<AulaService>    logger) : IAulaService
 {
     public IReadOnlyList<AulaResponse> GetAll()
     {
         logger.LogInformation("Buscando todas as aulas cadastradas.");
-        return aulaRepository.GetAll().Select(AulaResponse.FromDomain).ToList();
+        var aulas = aulaRepository.GetAll();
+        var conteudos = BuscarConteudosEmLote(aulas);
+        return aulas.Select(a => AulaResponse.FromDomain(a, conteudos.GetValueOrDefault(a.Id))).ToList();
     }
 
     public AulaResponse? GetById(Guid id)
@@ -24,15 +28,20 @@ public sealed class AulaService(
         logger.LogInformation("Buscando aula por ID: {AulaId}", id);
         var aula = aulaRepository.GetById(id);
         if (aula is null)
+        {
             logger.LogWarning("Aula com ID {AulaId} não encontrada.", id);
+            return null;
+        }
 
-        return aula is null ? null : AulaResponse.FromDomain(aula);
+        return AulaResponse.FromDomain(aula, BuscarConteudoMarkdown(id));
     }
 
     public IReadOnlyList<AulaResponse> GetByModuloId(Guid moduloId)
     {
         logger.LogInformation("Buscando aulas do módulo: {ModuloId}", moduloId);
-        return aulaRepository.GetByModuloId(moduloId).Select(AulaResponse.FromDomain).ToList();
+        var aulas = aulaRepository.GetByModuloId(moduloId);
+        var conteudos = BuscarConteudosEmLote(aulas);
+        return aulas.Select(a => AulaResponse.FromDomain(a, conteudos.GetValueOrDefault(a.Id))).ToList();
     }
 
     public AulaResponse Create(AulaRequest request)
@@ -60,21 +69,60 @@ public sealed class AulaService(
             return null;
         }
 
-        aula.Atualizar(request.Nome, request.Descricao, request.PontosAula, request.Dificuldade, request.Conteudo, request.Concluida);
+        aula.Atualizar(request.Nome, request.Descricao, request.PontosAula, request.Dificuldade, request.Concluida);
         aulaRepository.Update(aula);
         logger.LogInformation("Aula {AulaId} atualizada com sucesso.", id);
-        return AulaResponse.FromDomain(aula);
+        return AulaResponse.FromDomain(aula, BuscarConteudoMarkdown(id));
     }
 
-    public bool Delete(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Iniciando exclusão da aula: {AulaId}", id);
-        var removido = aulaRepository.Delete(id);
-        if (removido)
-            logger.LogInformation("Aula {AulaId} removida com sucesso.", id);
-        else
+        if (!aulaRepository.Delete(id))
+        {
             logger.LogWarning("Tentativa de exclusão de aula inexistente: {AulaId}", id);
+            return false;
+        }
 
-        return removido;
+        logger.LogInformation("Aula {AulaId} removida com sucesso.", id);
+        try
+        {
+            await conteudoRepository.ExcluirPorAulaIdAsync(id, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Aula {AulaId} excluída, mas o conteúdo no MongoDB não pôde ser removido.", id);
+        }
+        return true;
+    }
+
+    private string? BuscarConteudoMarkdown(Guid aulaId)
+    {
+        try
+        {
+            return conteudoRepository.GetByAulaIdAsync(aulaId).GetAwaiter().GetResult()?.CorpoMarkdown;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao consultar conteúdo no MongoDB para a aula {AulaId}.", aulaId);
+            return null;
+        }
+    }
+
+    private IReadOnlyDictionary<Guid, string> BuscarConteudosEmLote(IReadOnlyList<Aula> aulas)
+    {
+        if (aulas.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        try
+        {
+            var docs = conteudoRepository.GetByAulaIdsAsync(aulas.Select(a => a.Id).ToList()).GetAwaiter().GetResult();
+            return docs.ToDictionary(kv => kv.Key, kv => kv.Value.CorpoMarkdown);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao consultar conteúdos em lote no MongoDB.");
+            return new Dictionary<Guid, string>();
+        }
     }
 }

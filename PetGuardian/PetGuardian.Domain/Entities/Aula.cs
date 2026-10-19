@@ -5,6 +5,7 @@ namespace PetGuardian.Domain.Entities;
 
 /// <summary>
 /// Aula pertencente a um <see cref="Modulo"/>. Concede pontos de gamificação ao ser concluída.
+/// O conteúdo didático (Markdown) não é persistido aqui: fica no MongoDB (coleção conteudos_aula).
 /// </summary>
 public sealed class Aula : BaseEntity
 {
@@ -12,7 +13,6 @@ public sealed class Aula : BaseEntity
     public string Descricao   { get; private set; } = string.Empty;
     public int    PontosAula  { get; private set; }
     public string Dificuldade { get; private set; } = string.Empty;
-    public string Conteudo    { get; private set; } = string.Empty;
     public bool   Concluida   { get; private set; }
 
     public Guid    ModuloId { get; private set; }
@@ -20,19 +20,19 @@ public sealed class Aula : BaseEntity
 
     private Aula() { }
 
-    public Aula(string nome, string descricao, int pontosAula, string dificuldade, string conteudo, bool concluida, Guid moduloId)
+    public Aula(string nome, string descricao, int pontosAula, string dificuldade, bool concluida, Guid moduloId)
     {
         if (moduloId == Guid.Empty)
             throw new DomainException("A aula deve estar associada a um módulo válido.");
 
-        Atualizar(nome, descricao, pontosAula, dificuldade, conteudo, concluida);
+        Atualizar(nome, descricao, pontosAula, dificuldade, concluida);
         ModuloId = moduloId;
     }
 
     /// <summary>Atualiza os campos editáveis (usado pelo PUT). O módulo vinculado não é reatribuível por aqui.</summary>
-    public void Atualizar(string nome, string descricao, int pontosAula, string dificuldade, string conteudo, bool concluida)
+    public void Atualizar(string nome, string descricao, int pontosAula, string dificuldade, bool concluida)
     {
-        (Nome, Descricao, PontosAula, Dificuldade, Conteudo) = Validar(nome, descricao, pontosAula, dificuldade, conteudo);
+        (Nome, Descricao, PontosAula, Dificuldade) = Validar(nome, descricao, pontosAula, dificuldade);
         Concluida = concluida;
     }
 
@@ -44,8 +44,8 @@ public sealed class Aula : BaseEntity
         Concluida = true;
     }
 
-    private static (string Nome, string Descricao, int PontosAula, string Dificuldade, string Conteudo) Validar(
-        string nome, string descricao, int pontosAula, string dificuldade, string conteudo)
+    private static (string Nome, string Descricao, int PontosAula, string Dificuldade) Validar(
+        string nome, string descricao, int pontosAula, string dificuldade)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new DomainException("O nome da aula não pode ser vazio.");
@@ -64,11 +64,6 @@ public sealed class Aula : BaseEntity
         dificuldade = dificuldade.Trim();
         if (dificuldade.Length > 20)
             throw new DomainException("A dificuldade deve ter no máximo 20 caracteres.");
-        if (string.IsNullOrWhiteSpace(conteudo))
-            throw new DomainException("O conteúdo da aula não pode ser vazio.");
-        conteudo = conteudo.Trim();
-        if (conteudo.Length > 1000)
-            throw new DomainException("O conteúdo da aula deve ter no máximo 1000 caracteres.");
-        return (nome, descricao, pontosAula, dificuldade, conteudo);
+        return (nome, descricao, pontosAula, dificuldade);
     }
 }

@@ -30,18 +30,10 @@ public class PetGuardianContext(DbContextOptions<PetGuardianContext> options) : 
     public DbSet<Historico> Historicos { get; set; }
 
     // Join tables
-    public DbSet<UsuarioPet>      UsuarioPets      { get; set; }
-    public DbSet<UsuarioEndereco> UsuarioEnderecos { get; set; }
+    public DbSet<UsuarioPet> UsuarioPets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Entidades sem Id convencional — chaves declaradas antes do scan
-        modelBuilder.Entity<UsuarioPet>()
-            .HasKey(up => new { up.UsuarioId, up.PetId });
-
-        modelBuilder.Entity<UsuarioEndereco>()
-            .HasKey(ue => new { ue.UsuarioId, ue.EnderecoId });
-
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PetGuardianContext).Assembly);
 
         // Padronização Oracle: tabelas e colunas em UPPERCASE evitam erro ORA-00942 de case sensitivity com aspas duplas

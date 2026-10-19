@@ -33,12 +33,6 @@ namespace PetGuardian.Infrastructure.Migrations
                         .HasColumnType("NUMBER(1)")
                         .HasColumnName("CONCLUIDA");
 
-                    b.Property<string>("Conteudo")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("NVARCHAR2(1000)")
-                        .HasColumnName("CONTEUDO");
-
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -443,6 +437,10 @@ namespace PetGuardian.Infrastructure.Migrations
                         .HasColumnType("NVARCHAR2(50)")
                         .HasColumnName("EMAIL");
 
+                    b.Property<Guid>("EnderecoId")
+                        .HasColumnType("RAW(16)")
+                        .HasColumnName("ENDERECO_ID_ENDERECO");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -476,27 +474,12 @@ namespace PetGuardian.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("EnderecoId");
+
                     b.HasIndex("TelefoneId")
                         .IsUnique();
 
                     b.ToTable("USUARIO", (string)null);
-                });
-
-            modelBuilder.Entity("PetGuardian.Domain.Entities.UsuarioEndereco", b =>
-                {
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("RAW(16)")
-                        .HasColumnName("USUARIO_ID_USUARIO");
-
-                    b.Property<Guid>("EnderecoId")
-                        .HasColumnType("RAW(16)")
-                        .HasColumnName("ENDERECO_ID_ENDERECO");
-
-                    b.HasKey("UsuarioId", "EnderecoId");
-
-                    b.HasIndex("EnderecoId");
-
-                    b.ToTable("USUARIO_ENDERECO", (string)null);
                 });
 
             modelBuilder.Entity("PetGuardian.Domain.Entities.UsuarioPet", b =>
@@ -637,32 +620,21 @@ namespace PetGuardian.Infrastructure.Migrations
 
             modelBuilder.Entity("PetGuardian.Domain.Entities.Usuario", b =>
                 {
+                    b.HasOne("PetGuardian.Domain.Entities.Endereco", "Endereco")
+                        .WithMany("Usuarios")
+                        .HasForeignKey("EnderecoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("PetGuardian.Domain.Entities.Telefone", "Telefone")
                         .WithOne()
                         .HasForeignKey("PetGuardian.Domain.Entities.Usuario", "TelefoneId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Telefone");
-                });
-
-            modelBuilder.Entity("PetGuardian.Domain.Entities.UsuarioEndereco", b =>
-                {
-                    b.HasOne("PetGuardian.Domain.Entities.Endereco", "Endereco")
-                        .WithMany()
-                        .HasForeignKey("EnderecoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PetGuardian.Domain.Entities.Usuario", "Usuario")
-                        .WithMany("Enderecos")
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Endereco");
 
-                    b.Navigation("Usuario");
+                    b.Navigation("Telefone");
                 });
 
             modelBuilder.Entity("PetGuardian.Domain.Entities.UsuarioPet", b =>
@@ -692,6 +664,11 @@ namespace PetGuardian.Infrastructure.Migrations
             modelBuilder.Entity("PetGuardian.Domain.Entities.Cidade", b =>
                 {
                     b.Navigation("Bairros");
+                });
+
+            modelBuilder.Entity("PetGuardian.Domain.Entities.Endereco", b =>
+                {
+                    b.Navigation("Usuarios");
                 });
 
             modelBuilder.Entity("PetGuardian.Domain.Entities.Estado", b =>
@@ -732,8 +709,6 @@ namespace PetGuardian.Infrastructure.Migrations
 
             modelBuilder.Entity("PetGuardian.Domain.Entities.Usuario", b =>
                 {
-                    b.Navigation("Enderecos");
-
                     b.Navigation("PetsVinculados");
 
                     b.Navigation("Tarefas");

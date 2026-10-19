@@ -11,6 +11,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        LoadDotEnv();
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Logging estruturado com Serilog (console + arquivo rolling diário), enriquecido com CorrelationId.
@@ -77,8 +79,6 @@ public class Program
                 In = ParameterLocation.Header,
                 Description = "Informe o token JWT no formato: Bearer {token}"
             });
-            // Faz o botão "Authorize" do Swagger enviar o token nas requisições.
-            // (sintaxe Swashbuckle 10 / Microsoft.OpenApi 2.x; se o build reclamar, me mande o erro)
             options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 [new OpenApiSecuritySchemeReference("Bearer", document)] = []
@@ -106,5 +106,18 @@ public class Program
 
         app.MapControllers();
         app.Run();
+    }
+
+    private static void LoadDotEnv()
+    {
+        var path = new[] { ".env", "PetGuardian.API/.env", "../PetGuardian.API/.env", "PetGuardian/PetGuardian.API/.env" }.FirstOrDefault(File.Exists);
+        if (path == null) return;
+
+        foreach (var line in File.ReadAllLines(path))
+        {
+            var parts = line.Split('=', 2);
+            if (parts.Length == 2 && !parts[0].TrimStart().StartsWith('#'))
+                Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim().Trim('"', '\''));
+        }
     }
 }

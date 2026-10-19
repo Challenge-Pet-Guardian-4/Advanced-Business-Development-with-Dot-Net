@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Infrastructure.Persistence.Configurations;
 
-/// <summary>Adicionadas as colunas "conteudo" (VARCHAR2 1000) e "concluida" (NUMBER).</summary>
+/// <summary>Tabela AULA: metadados e progresso (coluna "concluida" NUMBER); o conteúdo didático fica no MongoDB.</summary>
 public sealed class AulaConfiguration : IEntityTypeConfiguration<Aula>
 {
     public void Configure(EntityTypeBuilder<Aula> builder)
@@ -16,7 +16,6 @@ public sealed class AulaConfiguration : IEntityTypeConfiguration<Aula>
         builder.Property(a => a.Descricao).HasColumnName("descricao").HasMaxLength(100).IsRequired();
         builder.Property(a => a.PontosAula).HasColumnName("pontos_aula").HasColumnType("NUMBER(5)").IsRequired();
         builder.Property(a => a.Dificuldade).HasColumnName("dificuldade").HasMaxLength(20).IsRequired();
-        builder.Property(a => a.Conteudo).HasColumnName("conteudo").HasMaxLength(1000).IsRequired();
 
         // concluida NUMBER (mesmo padrão de conversão bool<->NUMBER(1) usado em Pet.Castrado / UsuarioPet.ResponPrinc)
         builder.Property(a => a.Concluida)

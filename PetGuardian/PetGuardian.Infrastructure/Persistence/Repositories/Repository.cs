@@ -106,30 +106,8 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
         if (string.IsNullOrWhiteSpace(valor))
             return false;
 
-        ValidarPropriedadeNome();
-
         var normalizado = valor.Trim().ToLowerInvariant();
-
-        return _set.Any(e =>
-            EF.Property<string>(e, PropriedadeNome)
-              .ToLower() == normalizado);
-    }
-
-    private void ValidarPropriedadeNome()
-    {
-        var entityType = Context.Model.FindEntityType(typeof(T));
-
-        if (entityType is null)
-            throw new InvalidOperationException(
-                $"ExistsByNome: o tipo '{typeof(T).Name}' não está registrado no modelo EF Core.");
-
-        var prop = entityType.FindProperty(PropriedadeNome);
-
-        if (prop is null || prop.ClrType != typeof(string))
-            throw new InvalidOperationException(
-                $"ExistsByNome: a entidade '{typeof(T).Name}' não possui a propriedade " +
-                $"'{PropriedadeNome}' (string) mapeada. " +
-                "Esse método só se aplica a entidades com campo de denominação 'Nome'.");
+        return _set.Any(e => EF.Property<string>(e, PropriedadeNome).ToLower() == normalizado);
     }
     
     // Campos que nunca podem ser usados em ordenação (evita vazar informação de hash/salt).

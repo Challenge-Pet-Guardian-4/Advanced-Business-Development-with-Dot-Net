@@ -12,6 +12,7 @@ namespace PetGuardian.Application.Services.Implementations;
 public sealed class UsuarioService(
     IUsuarioRepository         usuarioRepository,
     IRepository<Telefone>      telefoneRepository,
+    IEnderecoService           enderecoService,
     ITarefaRepository          tarefaRepository,
     ILogger<UsuarioService>    logger) : IUsuarioService
 {
@@ -67,19 +68,14 @@ public sealed class UsuarioService(
             throw new InvalidOperationException("Já existe um usuário com este e-mail.");
         }
 
-        if (!telefoneRepository.ExistsById(request.TelefoneId))
-        {
-            logger.LogWarning("Tentativa de cadastro de usuário com telefone inexistente: {TelefoneId}", request.TelefoneId);
-            throw new InvalidOperationException("Telefone não encontrado.");
-        }
-
-        var usuario = request.ToDomain();
+        var endereco = enderecoService.Create(request.Endereco);
+        var telefone = telefoneRepository.Add(request.ToTelefone());
+        var usuario = request.ToDomain(telefone.Id, endereco.Id);
         usuarioRepository.Add(usuario);
         logger.LogInformation("Usuário {UsuarioId} ({Nome}) cadastrado com sucesso com senha protegida por Salt e BCrypt.", usuario.Id, usuario.Nome);
         return UsuarioResponse.FromDomain(usuario);
     }
 
-    /// <summary>TelefoneId não é reatribuível por aqui.</summary>
     public UsuarioResponse? Update(Guid id, UsuarioUpdateRequest request)
     {
         logger.LogInformation("Iniciando atualização do usuário: {UsuarioId}", id);
@@ -101,6 +97,23 @@ public sealed class UsuarioService(
         usuario.AtualizarEmail(request.Email);
         usuario.AtualizarSenha(request.Senha);
         usuario.AtualizarRole(request.Role);
+
+        if (!string.IsNullOrWhiteSpace(request.Ddd) && !string.IsNullOrWhiteSpace(request.NumeroTelefone))
+        {
+            var telefone = telefoneRepository.GetById(usuario.TelefoneId);
+            if (telefone is not null)
+            {
+                telefone.Atualizar(request.Ddd, request.NumeroTelefone);
+                telefoneRepository.Update(telefone);
+            }
+        }
+
+        if (request.Endereco is not null)
+        {
+            var endereco = enderecoService.Create(request.Endereco);
+            usuario.AtualizarEndereco(endereco.Id);
+        }
+
         usuarioRepository.Update(usuario);
 
         logger.LogInformation("Usuário {UsuarioId} atualizado com sucesso. Senha re-hasheada e atualizada.", id);

@@ -51,11 +51,6 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     public IActionResult Create([FromBody] BairroRequest request)
     {
         logger.LogInformation("HTTP POST /api/bairro: Cadastrando bairro '{Nome}' na Cidade {CidadeId}.", request.NomeBairro, request.CidadeId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/bairro: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = bairroService.Create(request);
         logger.LogInformation("HTTP POST /api/bairro: Bairro {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -69,11 +64,6 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     public IActionResult Update(Guid id, [FromBody] BairroRequest request)
     {
         logger.LogInformation("HTTP PUT /api/bairro/{Id}: Atualizando bairro '{Nome}'.", id, request.NomeBairro);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/bairro/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = bairroService.Update(id, request);
         if (updated is null)
         {

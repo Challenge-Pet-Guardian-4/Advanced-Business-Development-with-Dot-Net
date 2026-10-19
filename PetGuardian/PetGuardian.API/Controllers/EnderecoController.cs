@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
 
 namespace PetGuardian.API.Controllers;
 
-/// <summary>Endereços. Devem ser criados após Bairro. Usados por Usuario.</summary>
+/// <summary>Endereços de contato. Devem ser criados antes de Usuario.</summary>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -37,16 +38,12 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
 
     /// <summary>Cria um endereço.</summary>
     [HttpPost]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(EnderecoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] EnderecoRequest request)
     {
         logger.LogInformation("HTTP POST /api/endereco: Cadastrando endereço com CEP {Cep}.", request.Cep);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/endereco: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = enderecoService.Create(request);
         logger.LogInformation("HTTP POST /api/endereco: Endereço {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -60,11 +57,6 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
     public IActionResult Update(Guid id, [FromBody] EnderecoRequest request)
     {
         logger.LogInformation("HTTP PUT /api/endereco/{Id}: Atualizando endereço com CEP {Cep}.", id, request.Cep);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/endereco/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = enderecoService.Update(id, request);
         if (updated is null)
         {

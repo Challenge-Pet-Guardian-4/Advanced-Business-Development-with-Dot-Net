@@ -51,11 +51,6 @@ public class ModuloController(IModuloService moduloService, ILogger<ModuloContro
     public IActionResult Create([FromBody] ModuloRequest request)
     {
         logger.LogInformation("HTTP POST /api/modulo: Cadastrando módulo '{Nome}' para Trilha {TrilhaId}.", request.Nome, request.TrilhaId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/modulo: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = moduloService.Create(request);
         logger.LogInformation("HTTP POST /api/modulo: Módulo {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -69,11 +64,6 @@ public class ModuloController(IModuloService moduloService, ILogger<ModuloContro
     public IActionResult Update(Guid id, [FromBody] ModuloUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/modulo/{Id}: Atualizando módulo '{Nome}'.", id, request.Nome);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/modulo/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = moduloService.Update(id, request);
         if (updated is null)
         {

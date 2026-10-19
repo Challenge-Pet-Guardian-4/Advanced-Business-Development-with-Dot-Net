@@ -42,11 +42,6 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
     public IActionResult Create([FromBody] RacaRequest request)
     {
         logger.LogInformation("HTTP POST /api/raca: Cadastrando raça '{Nome}'.", request.NomeRaca);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/raca: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = racaService.Create(request);
         logger.LogInformation("HTTP POST /api/raca: Raça {Id} cadastrada com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -60,11 +55,6 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
     public IActionResult Update(Guid id, [FromBody] RacaRequest request)
     {
         logger.LogInformation("HTTP PUT /api/raca/{Id}: Atualizando raça '{Nome}'.", id, request.NomeRaca);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/raca/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = racaService.Update(id, request);
         if (updated is null)
         {

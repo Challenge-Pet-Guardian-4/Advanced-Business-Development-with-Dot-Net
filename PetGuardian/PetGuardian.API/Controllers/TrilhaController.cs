@@ -51,11 +51,6 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
     public IActionResult Create([FromBody] TrilhaRequest request)
     {
         logger.LogInformation("HTTP POST /api/trilha: Cadastrando trilha '{Nome}' para Pet {PetId}.", request.Nome, request.PetId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/trilha: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = trilhaService.Create(request);
         logger.LogInformation("HTTP POST /api/trilha: Trilha {Id} cadastrada com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -69,11 +64,6 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
     public IActionResult Update(Guid id, [FromBody] TrilhaUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/trilha/{Id}: Atualizando trilha '{Nome}'.", id, request.Nome);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/trilha/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = trilhaService.Update(id, request);
         if (updated is null)
         {

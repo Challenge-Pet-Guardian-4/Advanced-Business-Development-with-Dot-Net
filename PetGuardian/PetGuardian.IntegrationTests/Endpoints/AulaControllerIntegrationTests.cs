@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -42,8 +42,8 @@ public class AulaControllerIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Post_ComDadosValidos_DeveRetornar201Created()
     {
         // Arrange
-        var modulo = await CriarModuloAuxiliarAsync("MÃ³dulo Para Aula Post");
-        var request = new AulaRequest("Aula 1: Primeiros Passos", "Como interagir", 15, "Iniciante", "VÃ­deo e texto explicativo", false, modulo.Id);
+        var modulo = await CriarModuloAuxiliarAsync("Módulo Para Aula Post");
+        var request = new AulaRequest("Aula 1: Primeiros Passos", "Como interagir", 15, "Iniciante", false, modulo.Id);
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/aula", request);
@@ -60,8 +60,8 @@ public class AulaControllerIntegrationTests(CustomWebApplicationFactory factory)
     public async Task GetById_IdExistente_DeveRetornar200Ok()
     {
         // Arrange
-        var modulo = await CriarModuloAuxiliarAsync("MÃ³dulo Para Aula Get");
-        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula PrÃ¡tica", "Desc", 20, "MÃ©dio", "Texto", false, modulo.Id));
+        var modulo = await CriarModuloAuxiliarAsync("Módulo Para Aula Get");
+        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula Prática", "Desc", 20, "Médio", false, modulo.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<AulaResponse>();
         Assert.NotNull(criado);
 
@@ -92,19 +92,19 @@ public class AulaControllerIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Put_ComDadosValidos_DeveAtualizarERetornar200Ok()
     {
         // Arrange
-        var modulo = await CriarModuloAuxiliarAsync("MÃ³dulo Para Aula Put");
-        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula Original", "Desc", 10, "FÃ¡cil", "Texto", false, modulo.Id));
+        var modulo = await CriarModuloAuxiliarAsync("Módulo Para Aula Put");
+        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula Original", "Desc", 10, "Fácil", false, modulo.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<AulaResponse>();
         Assert.NotNull(criado);
 
         // Act
-        var putRes = await _client.PutAsJsonAsync($"/api/aula/{criado.Id}", new AulaUpdateRequest("Aula ConcluÃ­da", "Nova Desc", 25, "FÃ¡cil", "Texto revisado", true));
+        var putRes = await _client.PutAsJsonAsync($"/api/aula/{criado.Id}", new AulaUpdateRequest("Aula Concluída", "Nova Desc", 25, "Fácil", true));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, putRes.StatusCode);
         var atualizado = await putRes.Content.ReadFromJsonAsync<AulaResponse>();
         Assert.NotNull(atualizado);
-        Assert.Equal("Aula ConcluÃ­da", atualizado.Nome);
+        Assert.Equal("Aula Concluída", atualizado.Nome);
         Assert.True(atualizado.Concluida);
     }
 
@@ -112,8 +112,8 @@ public class AulaControllerIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Delete_IdValido_DeveRetornar204NoContent()
     {
         // Arrange
-        var modulo = await CriarModuloAuxiliarAsync("MÃ³dulo Para Aula Del");
-        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula Para Deletar", "Desc", 5, "FÃ¡cil", "Texto", false, modulo.Id));
+        var modulo = await CriarModuloAuxiliarAsync("Módulo Para Aula Del");
+        var postRes = await _client.PostAsJsonAsync("/api/aula", new AulaRequest("Aula Para Deletar", "Desc", 5, "Fácil", false, modulo.Id));
         var criado = await postRes.Content.ReadFromJsonAsync<AulaResponse>();
         Assert.NotNull(criado);
 
@@ -131,7 +131,7 @@ public class AulaControllerIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Post_ComDadosInvalidos_DeveRetornar400BadRequest()
     {
         // Arrange
-        var requestInvalido = new AulaRequest("", "Desc", 0, "Iniciante", "Texto", false, Guid.Empty);
+        var requestInvalido = new AulaRequest("", "Desc", 0, "Iniciante", false, Guid.Empty);
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/aula", requestInvalido);

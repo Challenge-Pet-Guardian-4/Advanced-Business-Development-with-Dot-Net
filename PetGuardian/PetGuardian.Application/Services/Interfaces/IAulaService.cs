@@ -1,4 +1,4 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
@@ -9,5 +9,5 @@ public interface IAulaService
     IReadOnlyList<AulaResponse> GetByModuloId(Guid moduloId);
     AulaResponse Create(AulaRequest request);
     AulaResponse? Update(Guid id, AulaUpdateRequest request);
-    bool Delete(Guid id);
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

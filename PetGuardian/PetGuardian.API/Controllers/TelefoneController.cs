@@ -44,11 +44,6 @@ public class TelefoneController(ITelefoneService telefoneService, ILogger<Telefo
     public IActionResult Create([FromBody] TelefoneRequest request)
     {
         logger.LogInformation("HTTP POST /api/telefone: Cadastrando telefone ({DDD}) {Numero}.", request.NumDdd, request.NumTel);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/telefone: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = telefoneService.Create(request);
         logger.LogInformation("HTTP POST /api/telefone: Telefone {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -62,11 +57,6 @@ public class TelefoneController(ITelefoneService telefoneService, ILogger<Telefo
     public IActionResult Update(Guid id, [FromBody] TelefoneRequest request)
     {
         logger.LogInformation("HTTP PUT /api/telefone/{Id}: Atualizando telefone ({DDD}) {Numero}.", id, request.NumDdd, request.NumTel);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/telefone/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = telefoneService.Update(id, request);
         if (updated is null)
         {

@@ -1,7 +1,7 @@
 # 🐾 PetGuardian — Plataforma de Cuidado Colaborativo e Saúde Animal
 
 > **Advanced Business Development with .NET** — FIAP (2º Ano ADS / 2TDSPG — Challenge 2026 - 2º Semestre)  
-> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **DRY** e **Clean Code**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **340 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
+> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **DRY** e **Clean Code**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **342 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
 
 ---
 
@@ -15,7 +15,7 @@
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing%20%26%20Metrics-4A154B?logo=opentelemetry&logoColor=white&style=for-the-badge)
 ![JWT](https://img.shields.io/badge/JWT-Bearer%20HS256-orange?style=for-the-badge)
 ![BCrypt](https://img.shields.io/badge/BCrypt-Security%20%26%20Salt-green?style=for-the-badge)
-![xUnit](https://img.shields.io/badge/xUnit-340%20Tests%20Passing-brightgreen?style=for-the-badge)
+![xUnit](https://img.shields.io/badge/xUnit-342%20Tests%20Passing-brightgreen?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white&style=for-the-badge)
 
 ---
@@ -58,11 +58,12 @@ A base é composta exatamente por **16 tabelas oficiais normalizadas**:
 ### Modelo Relacional
 ![Modelo Relacional](docs/Relational.png)
 
-### 📋 Mapeamento das 16 Tabelas Oficiais e Entidades
+### 📋 Mapeamento das 15 Tabelas Relacionais Oficiais (Oracle) + Coleção NoSQL (MongoDB Atlas)
 
-| Tabela Oracle | Entidade C# (.NET) | Descrição & Propósito no Ecossistema |
+| Tabela / Coleção | Entidade / Documento C# (.NET) | Descrição & Propósito no Ecossistema |
 | :--- | :--- | :--- |
 | `AULA` | `Aula` | Aulas de capacitação dos tutores com pontuação educativa |
+| `conteudos_aula` *(MongoDB)* | `ConteudoAulaDocument` | Conteúdo didático rico (Markdown e links de recursos) vinculado 1:1 à Aula |
 | `BAIRRO` | `Bairro` | Bairros associados a endereços (resolvidos via CEP) |
 | `CIDADE` | `Cidade` | Cidades federadas vinculadas a estados |
 | `ENDERECO` | `Endereco` | Endereços cadastrados com resolução automática ViaCEP |
@@ -75,8 +76,7 @@ A base é composta exatamente por **16 tabelas oficiais normalizadas**:
 | `TAREFA` | `Tarefa` | Rotinas diárias de cuidado com pontuação gamificada de bem-estar |
 | `TELEFONE` | `Telefone` | Telefones de contato dos usuários |
 | `TRILHA` | `Trilha` | Trilhas temáticas de adestramento e saúde preventiva |
-| `USUARIO` | `Usuario` | Tutores e cuidadores (senhas protegidas com BCrypt + Salt exclusivo) |
-| `USUARIO_ENDERECO` | `UsuarioEndereco` | Relação associativa entre usuários e endereços |
+| `USUARIO` | `Usuario` | Tutores e cuidadores vinculados a telefone (1:1) e endereço (N:1) |
 | `USUARIO_PET` | `UsuarioPet` | Care Circle: Rede N:N de cuidadores com eleição do tutor principal |
 
 ---
@@ -92,8 +92,6 @@ Abaixo constam as capturas de tela das tabelas físicas populadas e estruturadas
   ![Tabela TELEFONE](docs/telefones.png)
 * **Tabela `USUARIO_PET`:** Vínculo N:N da rede de cuidado (Care Circle) e eleição de tutor principal:
   ![Tabela USUARIO_PET](docs/usuario_pet.png)
-* **Tabela `USUARIO_ENDERECO`:** Vínculo associativo entre usuários e endereços cadastrados:
-  ![Tabela USUARIO_ENDERECO](docs/usuario_endereco.png)
 
 #### 2. Animais, Raças e Rotinas de Cuidado
 * **Tabela `PET`:** Animais domésticos, porte, dados vitais e score acumulado:
@@ -122,6 +120,8 @@ Abaixo constam as capturas de tela das tabelas físicas populadas e estruturadas
   ![Tabela MODULO](docs/modulo.png)
 * **Tabela `AULA`:** Aulas individuais com pontuação de gamificação educativa:
   ![Tabela AULA](docs/aula.png)
+* **Coleção `conteudos_aula` (MongoDB Atlas):** Conteúdos didáticos em Markdown, links de recursos e formato pedagógico vinculados à aula:
+  ![Conteúdos Aulas](docs/mongoDB.png)
 
 #### 5. Controle de Versão e Migrações de Banco de Dados
 * **Tabela `__EFMigrationsHistory`:** Histórico de migrações e sincronização do esquema no Oracle:
@@ -235,33 +235,32 @@ A API expõe endpoints estruturados para monitoramento de liveness e readiness d
 
 ---
 
-## 🧪 Suíte de Testes Automatizados (340 Testes / Padrão AAA)
+## 🧪 Suíte de Testes Automatizados (342 Testes / Padrão AAA)
 
-A solução conta com **340 testes automatizados** distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura estabelece uma **simetria 1:1 perfeita** em todas as camadas (16 Entidades no Domínio, 16 Serviços na Aplicação e 17 Controllers na API com o módulo de autenticação).
+A solução conta com **342 testes automatizados** distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura estabelece uma **simetria 1:1 perfeita** em todas as camadas (15 Entidades relacionais no Domínio + 1 Documento NoSQL no MongoDB, 16 Serviços na Aplicação e 17 Controllers na API com o módulo de autenticação).
 
 ### 🧩 Compartilhamento de Contexto com Fixtures e Collection Fixtures (15 pts):
 A solução atende ao requisito formal de organização e compartilhamento de contexto via xUnit:
 1. **Testes Unitários (`TestFixture` + `UnitTestCollection`):**
-   * **`TestFixture.cs`:** Fábrica determinística centralizada (DRY) contendo métodos geradores para todas as 16 entidades de domínio (`CriarPetValido`, `CriarUsuarioValido`, `CriarEnderecoValido`, `CriarUsuarioEnderecoValido`, etc.).
+   * **`TestFixture.cs`:** Fábrica determinística centralizada (DRY) contendo métodos geradores para todas as 15 entidades de domínio (`CriarPetValido`, `CriarUsuarioValido`, `CriarEnderecoValido`, etc.).
    * **`UnitTestCollection.cs`:** Define a Collection Fixture decorada com `[CollectionDefinition(Name)]` implementando `ICollectionFixture<TestFixture>`.
-   * **Injeção Padronizada:** 100% das 33 classes de testes unitários (`Domain/` e `Application/`) são decoradas com `[Collection(UnitTestCollection.Name)]` e recebem `TestFixture` via injeção de construtor primário para geração de entidades de teste.
+   * **Injeção Padronizada:** 100% das classes de testes unitários (`Domain/` e `Application/`) são decoradas com `[Collection(UnitTestCollection.Name)]` e recebem `TestFixture` via injeção de construtor primário para geração de entidades de teste.
 2. **Testes de Integração (`CustomWebApplicationFactory` + `IntegrationTestCollection`):**
-   * **`CustomWebApplicationFactory.cs`:** Especialização de `WebApplicationFactory<Program>` que sobe o pipeline HTTP completo da API em memória, substituindo o Oracle por InMemory Database isolado e o ViaCEP por mock determinístico.
+   * **`CustomWebApplicationFactory.cs`:** Especialização de `WebApplicationFactory<Program>` que sobe o pipeline HTTP completo da API em memória, substituindo o Oracle por InMemory Database isolado, o repositório do MongoDB por `InMemoryConteudoAulaRepository` e o ViaCEP por mock determinístico.
    * **`IntegrationTestCollection.cs`:** Define a Collection Fixture decorada com `[CollectionDefinition(Name)]` implementando `ICollectionFixture<CustomWebApplicationFactory>`.
-   * **Ciclo de Vida Compartilhado:** Todas as 20 classes de testes de integração compartilham o mesmo contexto HTTP através de `[Collection(IntegrationTestCollection.Name)]`, eliminando o overhead de subir múltiplos servidores e assegurando isolamento transacional.
+   * **Ciclo de Vida Compartilhado:** Todas as classes de testes de integração compartilham o mesmo contexto HTTP através de `[Collection(IntegrationTestCollection.Name)]`, eliminando o overhead de subir múltiplos servidores e assegurando isolamento transacional.
 
 ### Organização das Suítes de Teste:
-1. **PetGuardian.UnitTests (206 testes):**
-   * **Domínio (17 Classes / Validação de Invariantes & Criptografia):**
+1. **PetGuardian.UnitTests:**
+   * **Domínio (16 Classes / Validação de Invariantes & Criptografia):**
      * `PetTests` (Invariantes de nome, datas de nascimento, castração e cálculo de idade)
-     * `UsuarioTests` (Validações de tamanho de nome, e-mail, senha mínima, salt e BCrypt)
+     * `UsuarioTests` (Validações de tamanho de nome, e-mail, senha mínima, telefone, endereço, salt e BCrypt)
      * `TarefaTests` (Invariantes de prazo futuro, pontuação e bloqueio de edição após conclusão)
      * `TrilhaTests` (Invariantes de nome, limites de caracteres e vínculo de pet)
      * `ModuloTests` (Validações de tempo de conclusão, descrição e vínculo de trilha)
      * `AulaTests` (Pontos não negativos, conclusão de aula e impedimento de re-conclusão)
      * `HistoricoTests` (Invariantes de tipo de evento, data UTC e vínculo de pet)
      * `UsuarioPetTests` (Chaves compostas e alternância de responsabilidade principal)
-     * `UsuarioEnderecoTests` (Validações de chaves compostas e integridade relacional)
      * `EnderecoTests` (Validação de formato de CEP com 8 dígitos, número e bairro)
      * `StatusTests` (Validação estrita de valores aceitos: PENDENTE, CONCLUIDO, EXPIRADO)
      * `RacaTests` (Invariantes de nome não vazio e limites de caracteres)
@@ -274,8 +273,8 @@ A solução atende ao requisito formal de organização e compartilhamento de co
      * `PetServiceTests`, `UsuarioServiceTests`, `TarefaServiceTests`, `UsuarioPetServiceTests`
      * `EnderecoServiceTests`, `BairroServiceTests`, `CidadeServiceTests`, `EstadoServiceTests`
      * `StatusServiceTests`, `RacaServiceTests`, `TelefoneServiceTests`, `HistoricoServiceTests`
-     * `UsuarioEnderecoServiceTests`, `TrilhaServiceTests`, `ModuloServiceTests`, `AulaServiceTests`
-2. **PetGuardian.IntegrationTests (134 testes):**
+     * `TrilhaServiceTests`, `ModuloServiceTests`, `AulaServiceTests`, `ConteudoAulaServiceTests`
+2. **PetGuardian.IntegrationTests:**
    * **Autenticação & Segurança JWT:**
      * `AuthControllerIntegrationTests` (Login 200 com JWT, senha incorreta 401, e-mail inexistente 401, rota alternativa `/login` 200, `/api/auth/me` sem token 401, `/api/auth/me` com token válido 200, `/api/auth/me` com token inválido 401).
    * **16 Suítes Dedicadas de Controllers (1:1 com a API):** Cada um dos 16 controllers da API possui sua própria classe de teste independente validando respostas de sucesso (200, 201, 204) e tratamento estrito de erros (400 Bad Request com validação de payload/domínio, 404 Not Found):
@@ -287,13 +286,13 @@ A solução atende ao requisito formal de organização e compartilhamento de co
      * `BairroControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 dados inválidos)
      * `CidadeControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 dados inválidos)
      * `EstadoControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 nome inválido)
-     * `UsuarioEnderecoIntegrationTests` (POST 201, GET 200 por usuário, GET 200 por endereço, DELETE 204, POST 400 IDs inválidos)
      * `UsuarioPetControllerIntegrationTests` (POST 201, GET 200 rede de cuidado, PUT 200 troca de principal, DELETE 204, POST 400 IDs inválidos)
      * `TarefaControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, POST 200 concluir, DELETE 204, POST 400 prazo inválido)
      * `StatusControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 status inválido)
      * `TrilhaControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 dados inválidos)
      * `ModuloControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 dados inválidos)
      * `AulaControllerIntegrationTests` (POST 201, GET 200, GET 404, PUT 200, DELETE 204, POST 400 dados inválidos)
+     * `ConteudoAulaIntegrationTests` (POST 201, GET 200 com HATEOAS, PUT 200, DELETE 204, cascata ao deletar aula)
      * `HistoricoControllerIntegrationTests` (POST 201, GET 200, GET 404, GET 200 por pet, PUT 200, DELETE 204, POST 400 dados inválidos)
    * **Observabilidade & Health Probes:**
      * `HealthCheckEndpointsTests` (Liveness `/health/live`, readiness `/health/ready`, integridade `/health` e endpoint Prometheus `/metrics`)
@@ -305,7 +304,7 @@ A solução atende ao requisito formal de organização e compartilhamento de co
 Para executar toda a suíte de testes (Unitários e de Integração) a partir da raiz da solução:
 
 ```powershell
-# Executar todos os 340 testes da solução com relatório detalhado
+# Executar todos os 342 testes da solução com relatório detalhado
 dotnet test PetGuardian.sln --logger "console;verbosity=normal"
 ```
 
@@ -315,7 +314,7 @@ Para executar separadamente por projeto:
 # Executar os 206 testes unitários (Domínio + Aplicação com Moq e TestFixture)
 dotnet test PetGuardian.UnitTests\PetGuardian.UnitTests.csproj
 
-# Executar os 134 testes de integração (WebApplicationFactory e IntegrationTestCollection)
+# Executar os 136 testes de integração (WebApplicationFactory e IntegrationTestCollection)
 dotnet test PetGuardian.IntegrationTests\PetGuardian.IntegrationTests.csproj
 
 # Executar a auditoria completa de todas as 99 operações HTTP da API
@@ -325,8 +324,8 @@ dotnet test PetGuardian.IntegrationTests\PetGuardian.IntegrationTests.csproj --f
 ### Resumo da Execução:
 ```text
 Passed!  - Failed: 0, Passed: 206, Skipped: 0, Total: 206 - PetGuardian.UnitTests.dll (net10.0)
-Passed!  - Failed: 0, Passed: 134, Skipped: 0, Total: 134 - PetGuardian.IntegrationTests.dll (net10.0)
-Total Geral: 340 Testes Passando (100% de sucesso)
+Passed!  - Failed: 0, Passed: 136, Skipped: 0, Total: 136 - PetGuardian.IntegrationTests.dll (net10.0)
+Total Geral: 342 Testes Passando (100% de sucesso)
 ```
 
 ---
@@ -452,8 +451,8 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 | `GET` | `/api/usuario/{id}` | Busca um usuário por ID |
 | `GET` | `/api/usuario/by-email` | Busca usuário por endereço de e-mail (query string `?email=...`) |
 | `GET` | `/api/usuario/{id}/score` | Consulta a pontuação gamificada acumulada do usuário |
-| `POST` | `/api/usuario` | Cadastra um novo usuário com senha criptografada (BCrypt + Salt criptográfico) |
-| `PUT` | `/api/usuario/{id}` | Atualiza dados do usuário (nome, e-mail, perfil/role e senha com novo salt) |
+| `POST` | `/api/usuario` | Cadastra um novo usuário com senha criptografada (BCrypt + Salt) recebendo `ddd`, `numeroTelefone` e `endereco` (`cep` + `numero`) inline, resolvendo o endereço via ViaCEP e criando o telefone automaticamente |
+| `PUT` | `/api/usuario/{id}` | Atualiza dados do usuário (nome, e-mail, perfil/role, senha com novo salt e opcionalmente `ddd`, `numeroTelefone` e `endereco`) |
 | `DELETE` | `/api/usuario/{id}` | Remove um usuário do sistema |
 
 ---
@@ -523,16 +522,15 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-### 🔗 9. Vínculo Usuário-Endereço (`/api/usuarioendereco`)
-*Tabela associativa entre usuários e múltiplos endereços.*
+### 🍃 9. Conteúdo Didático das Aulas — NoSQL MongoDB (`/api/aula/{aulaId}/conteudo`)
+*Conteúdo rico em Markdown e links de recursos armazenados na coleção `conteudos_aula` no MongoDB Atlas.*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/usuarioendereco` | Lista todos os vínculos usuário-endereço |
-| `GET` | `/api/usuarioendereco/{usuarioId}/{enderecoId}` | Busca vínculo específico por chave composta (`usuarioId` + `enderecoId`) |
-| `POST` | `/api/usuarioendereco` | Associa um endereço a um usuário |
-| `PUT` | `/api/usuarioendereco/{usuarioId}/{enderecoId}` | Atualiza propriedades do vínculo usuário-endereço |
-| `DELETE` | `/api/usuarioendereco/{usuarioId}/{enderecoId}` | Desvincula o endereço do usuário |
+| `GET` | `/api/aula/{aulaId}/conteudo` | Obtém o conteúdo didático rico (Markdown + links) da aula |
+| `POST` | `/api/aula/{aulaId}/conteudo` | Cadastra o conteúdo da aula no MongoDB Atlas (somente Admin) |
+| `PUT` | `/api/aula/{aulaId}/conteudo` | Atualiza o conteúdo da aula no MongoDB Atlas (somente Admin) |
+| `DELETE` | `/api/aula/{aulaId}/conteudo` | Remove o conteúdo da aula no MongoDB Atlas (somente Admin) |
 
 ---
 
@@ -593,7 +591,7 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 | `GET` | `/api/trilha/{id}` | Busca uma trilha por ID |
 | `GET` | `/api/trilha/by-pet/{petId}` | Lista trilhas recomendadas para um pet específico |
 | `POST` | `/api/trilha` | Cria uma nova trilha de aprendizado |
-| `PUT` | `/api/trilha/{id}` | Atualiza dados da trilha (título, descrição, pontuação) |
+| `PUT` | `/api/trilha/{id}` | Atualiza dados da trilha (título, descrição) |
 | `DELETE` | `/api/trilha/{id}` | Remove uma trilha |
 
 ---
@@ -606,21 +604,21 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 | `GET` | `/api/modulo` | Lista todos os módulos |
 | `GET` | `/api/modulo/{id}` | Busca módulo por ID |
 | `POST` | `/api/modulo` | Cadastra um novo módulo vinculado a uma trilha |
-| `PUT` | `/api/modulo/{id}` | Atualiza dados do módulo (ordem, título, conteúdo) |
+| `PUT` | `/api/modulo/{id}` | Atualiza dados do módulo (nome, tempo de conclusão, descrição) |
 | `DELETE` | `/api/modulo/{id}` | Remove um módulo |
 
 ---
 
 ### 📖 15. Aulas de Capacitação (`/api/aula`)
-*Aulas individuais com pontuação educativa para o tutor.*
+*Aulas individuais com pontuação educativa para o tutor (enriquecidas com Markdown do MongoDB Atlas).*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/aula` | Lista todas as aulas cadastradas |
-| `GET` | `/api/aula/{id}` | Busca aula por ID |
+| `GET` | `/api/aula` | Lista todas as aulas cadastradas (com `conteudo` resolvido em lote no MongoDB) |
+| `GET` | `/api/aula/{id}` | Busca aula por ID (com `conteudo` resolvido no MongoDB) |
 | `POST` | `/api/aula` | Cadastra uma nova aula associada a um módulo |
-| `PUT` | `/api/aula/{id}` | Atualiza dados da aula (título, conteúdo, pontuação) |
-| `DELETE` | `/api/aula/{id}` | Remove uma aula |
+| `PUT` | `/api/aula/{id}` | Atualiza dados estruturados da aula (nome, descrição, pontos, dificuldade, concluída) |
+| `DELETE` | `/api/aula/{id}` | Remove a aula no Oracle e exclui em cascata o conteúdo em `conteudos_aula` no MongoDB |
 
 ---
 
@@ -642,8 +640,8 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/health` | Visão completa da saúde da API, banco Oracle e serviço ViaCEP em JSON estruturado |
-| `GET` | `/health/ready` | Readiness probe: verifica conectividade com Oracle (`CanConnectAsync`) e ViaCEP |
+| `GET` | `/health` | Visão completa da saúde da API, banco Oracle, MongoDB Atlas e serviço ViaCEP em JSON estruturado |
+| `GET` | `/health/ready` | Readiness probe: verifica conectividade com Oracle (`CanConnectAsync`), MongoDB Atlas e ViaCEP |
 | `GET` | `/health/live` | Liveness probe: verifica se o processo da aplicação ASP.NET Core está ativo |
 
 ## 18. 🔐 Autenticação e Autorização (JWT + papéis)
@@ -653,13 +651,13 @@ Toda rota exige `Authorization: Bearer {token}`, exceto `POST /api/auth/login`, 
 | Perfil | Pode |
 | :--- | :--- |
 | **Comum / Premium** | Ler tudo; criar/editar seus pets, tarefas, vínculos; editar/excluir **a si mesmo** |
-| **Admin** | Tudo, incluindo listar usuários, escrever em Estado/Cidade/Bairro/Raça/Status e sincronizar o catálogo |
+| **Admin** | Tudo, incluindo listar usuários, escrever em Estado/Cidade/Bairro/Raça/Status e gerenciar `conteudos_aula` no MongoDB |
 
 O perfil `Admin` só pode ser atribuído por outro Admin (anti-escalada de privilégio).
 
 ## 19. 📄 Paginação, ordenação e filtros
 
-`GET /api/pet`, `/api/tarefa`, `/api/usuario`, `/api/historico` e `/api/catalogo/trilhas`:
+`GET /api/pet`, `/api/tarefa`, `/api/usuario` e `/api/historico`:
 
 `?page=1&pageSize=10&sortBy=Nome&sortDir=desc` + filtros (`nome`, `racaId`, `porte`, `petId`, `concluida`, `prazoDe`, ...).
 `pageSize` máx. 100; `sortBy` inválido (ou sensível, como `Senha`) → `400`.
@@ -680,31 +678,58 @@ Respostas de consulta trazem `_links` (`self`, `update`, `delete`, recursos rela
 }
 ```
 
-## 21. 🍃 MongoDB (persistência poliglota)
+## 21. 🍃 MongoDB Atlas (persistência poliglota)
 
-- **Oracle** continua sendo a fonte transacional (ACID, FKs, usuários, rede de cuidado).
-- **MongoDB** guarda o **catálogo de trilhas** (`trilhas_educativas`): cada trilha é **um documento** com `modulos[]` e `aulas[]` embutidos, o que dá leitura sem JOIN.
-- `POST /api/catalogo/trilhas/sincronizar` (Admin) exporta Trilha→Módulo→Aula do Oracle para o Mongo, de forma idempotente (upsert por `trilha_id_origem` + remoção dos órfãos).
-- `GET /api/catalogo/trilhas` (paginado, busca textual) e `GET /api/catalogo/trilhas/{trilhaId}`.
+![Coleção conteudos_aula no MongoDB Atlas](docs/mongoDB.png)
+
+- **Oracle** é a fonte relacional transacional das 15 entidades (`TRILHA`, `MODULO`, `AULA`, `USUARIO`, `PET`, etc.).
+- **MongoDB Atlas** armazena exclusivamente a coleção **`conteudos_aula`** (1:1 com `AULA` via `aula_id`), contendo `tipo_conteudo`, `corpo_markdown`, `links_recursos` e `atualizado_em`, com índices garantidos automaticamente por `MongoIndexesInitializer`.
+- Endpoints RESTful com HATEOAS em `/api/aula/{aulaId}/conteudo` (`GET`, `POST`, `PUT`, `DELETE`).
+- As consultas de `Aula` (`/api/aula`, `/api/aula/{id}`, `/api/aula/by-modulo/{moduloId}`) enriquecem automaticamente o campo `conteudo` a partir do MongoDB Atlas (em lote ou individualmente) e o `DELETE /api/aula/{id}` remove em cascata o documento correspondente.
 - Health check `mongodb` em `/health` e `/health/ready`.
 
 ## 22. ⚙️ Variáveis de ambiente (nada de segredo no repositório)
 
-`ConnectionStrings__PetGuardianOracle`, `MongoDb__ConnectionString`, `Jwt__SecretKey` (≥ 32 caracteres). Veja `.env.example`.
+`ORACLE_APP_USER`, `ORACLE_APP_PASSWORD`, `ORACLE_DATA_SOURCE`, `MONGODB_URI`, `MONGODB_DATABASE`, `JWT_SECRET_KEY` (≥ 32 caracteres). Veja `.env.example`.
 
-## 23. 🏛️ Diagrama de arquitetura
+## 23. 🏛️ Diagrama de Arquitetura
 
-```mermaid
-flowchart LR
-    Mobile[App Mobile] -->|HTTPS + JWT| API
-    subgraph Solução .NET 10
-        API["PetGuardian.API<br/>Controllers · Auth · Middlewares · Health"] --> APP["PetGuardian.Application<br/>Serviços · DTOs · Contratos"]
-        APP --> DOM["PetGuardian.Domain<br/>Entidades · Regras"]
-        INF["PetGuardian.Infrastructure<br/>EF Core · MongoDB Driver"] -. implementa contratos .-> APP
-        API --> INF
-    end
-    INF --> ORA[(Oracle)]
-    INF --> MONGO[(MongoDB)]
-    APP -->|HttpClient| VIACEP[ViaCEP]
-    API -->|/metrics| PROM[Prometheus]
+```text
+┌────────────────────┐
+│     App Mobile     │
+│  (React Native /   │
+│   Clientes HTTP)   │
+└─────────┬──────────┘
+          │ HTTPS + JWT Bearer
+          ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              Solução .NET 10                                  │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │ PetGuardian.API                                                         │  │
+│  │ Controllers REST · Auth JWT · HATEOAS · Middlewares · Health Checks     ├──┼───► [/metrics] ───► Prometheus
+│  └──────────────────┬───────────────────────────────────┬──────────────────┘  │
+│                     │ chama                             │ DI / Configuração   │
+│                     ▼                                   ▼                     │
+│  ┌─────────────────────────────────────┐   ┌───────────────────────────────┐  │
+│  │ PetGuardian.Application             │◄──┤ PetGuardian.Infrastructure    │  │
+│  │ Services · DTOs · Interfaces        │   │ EF Core (Oracle)              │  │
+│  │ Regras de Orquestração              │   │ MongoDB.Driver (NoSQL)        │  │
+│  └─────────┬───────────────────┬───────┘   │ QueryServices · Repositórios  │  │
+│            │ usa               │           └────────┬──────────────┬───────┘  │
+│            ▼                   │                    │              │          │
+│  ┌─────────────────────────┐   │                    │              │          │
+│  │ PetGuardian.Domain      │   │                    │              │          │
+│  │ Entidades · Enums       │   │                    │              │          │
+│  │ Invariantes · BCrypt    │   │                    │              │          │
+│  └─────────────────────────┘   │                    │              │          │
+└────────────────────────────────┼────────────────────┼──────────────┼──────────┘
+                                 │                    │              │
+                  HttpClient     │       EF Core      │              │ MongoDB.Driver
+                 (Consulta CEP)  │      (15 Tabelas)  │              │ (conteudos_aula)
+                                 ▼                    ▼              ▼
+                        ┌─────────────────┐  ┌──────────────┐ ┌────────────────┐
+                        │   API ViaCEP    │  │    Oracle    │ │ MongoDB Atlas  │
+                        │ (Serviço Ext.)  │  │   Database   │ │ (NoSQL Cloud)  │
+                        └─────────────────┘  └──────────────┘ └────────────────┘
 ```

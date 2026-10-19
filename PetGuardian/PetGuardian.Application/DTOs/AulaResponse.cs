@@ -1,11 +1,11 @@
-﻿using PetGuardian.Domain.Entities;
+using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.DTOs;
 
 public record AulaResponse(
     Guid Id, string Nome, string Descricao, int PontosAula, string Dificuldade,
-    string Conteudo, bool Concluida, Guid ModuloId)
+    bool Concluida, Guid ModuloId, string? Conteudo = null)
 {
-    public static AulaResponse FromDomain(Aula a) =>
-        new(a.Id, a.Nome, a.Descricao, a.PontosAula, a.Dificuldade, a.Conteudo, a.Concluida, a.ModuloId);
+    public static AulaResponse FromDomain(Aula a, string? conteudo = null) =>
+        new(a.Id, a.Nome, a.Descricao, a.PontosAula, a.Dificuldade, a.Concluida, a.ModuloId, conteudo);
 }

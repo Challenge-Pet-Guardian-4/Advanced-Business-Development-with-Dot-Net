@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -12,22 +12,14 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
 {
     private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
-    private async Task<Guid> ObterTelefoneIdAsync()
-    {
-        var telPost = await _client.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "987654321"));
-        Assert.Equal(HttpStatusCode.Created, telPost.StatusCode);
-        var tel = await telPost.Content.ReadFromJsonAsync<TelefoneResponse>();
-        Assert.NotNull(tel);
-        return tel.Id;
-    }
+    private static EnderecoRequest EnderecoPadrao() => new("01001-000", "100");
 
     [Fact]
     public async Task Post_ComDadosValidos_DeveRetornar201Created()
     {
         // Arrange
-        var telId = await ObterTelefoneIdAsync();
         var email = $"user_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var request = new UsuarioRequest("Fernanda Lima", email, "senhaSegura123", RoleUsuario.Comum, telId);
+        var request = new UsuarioRequest("Fernanda Lima", email, "senhaSegura123", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao());
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/usuario", request);
@@ -38,15 +30,16 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
         Assert.NotNull(usuario);
         Assert.Equal("Fernanda Lima", usuario.Nome);
         Assert.Equal(email, usuario.Email);
+        Assert.NotEqual(Guid.Empty, usuario.TelefoneId);
+        Assert.NotEqual(Guid.Empty, usuario.EnderecoId);
     }
 
     [Fact]
     public async Task GetById_IdExistente_DeveRetornar200Ok()
     {
         // Arrange
-        var telId = await ObterTelefoneIdAsync();
         var email = $"user_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Carlos Silva", email, "senha123", RoleUsuario.Comum, telId));
+        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Carlos Silva", email, "senha123", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao()));
         var criado = await postRes.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(criado);
 
@@ -77,9 +70,8 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
     public async Task Put_ComDadosValidos_DeveAtualizarERetornar200Ok()
     {
         // Arrange
-        var telId = await ObterTelefoneIdAsync();
         var email = $"user_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Usuario Original", email, "senha123", RoleUsuario.Comum, telId));
+        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Usuario Original", email, "senha123", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao()));
         var criado = await postRes.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(criado);
 
@@ -99,9 +91,8 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
     public async Task Delete_IdValido_DeveRetornar204NoContent()
     {
         // Arrange
-        var telId = await ObterTelefoneIdAsync();
         var email = $"del_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Usuario Deletar", email, "senha123", RoleUsuario.Comum, telId));
+        var postRes = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Usuario Deletar", email, "senha123", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao()));
         var criado = await postRes.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(criado);
 
@@ -119,12 +110,11 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
     public async Task Post_ComEmailDuplicado_DeveRetornar400BadRequest()
     {
         // Arrange
-        var telId = await ObterTelefoneIdAsync();
         var emailDuplicado = $"dup_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Primeiro", emailDuplicado, "senha123", RoleUsuario.Comum, telId));
+        await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Primeiro", emailDuplicado, "senha123", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao()));
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Segundo", emailDuplicado, "senha456", RoleUsuario.Comum, telId));
+        var response = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Segundo", emailDuplicado, "senha456", RoleUsuario.Comum, "11", "987654321", EnderecoPadrao()));
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -134,7 +124,7 @@ public class UsuarioControllerIntegrationTests(CustomWebApplicationFactory facto
     public async Task Post_ComDadosInvalidos_DeveRetornar400BadRequest()
     {
         // Arrange
-        var requestInvalido = new UsuarioRequest("", "invalido@email.com", "senha", RoleUsuario.Comum, Guid.Empty);
+        var requestInvalido = new UsuarioRequest("", "invalido@email.com", "senha", RoleUsuario.Comum, "", "", new EnderecoRequest("", ""));
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/usuario", requestInvalido);

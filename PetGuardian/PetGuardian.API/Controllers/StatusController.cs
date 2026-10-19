@@ -42,11 +42,6 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
     public IActionResult Create([FromBody] StatusRequest request)
     {
         logger.LogInformation("HTTP POST /api/status: Cadastrando status '{Nome}'.", request.NomeStatus);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/status: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = statusService.Create(request);
         logger.LogInformation("HTTP POST /api/status: Status {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -60,11 +55,6 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
     public IActionResult Update(Guid id, [FromBody] StatusRequest request)
     {
         logger.LogInformation("HTTP PUT /api/status/{Id}: Atualizando status '{Nome}'.", id, request.NomeStatus);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/status/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = statusService.Update(id, request);
         if (updated is null)
         {

@@ -20,10 +20,13 @@ public class TokenService(IConfiguration configuration) : ITokenService
     public static byte[] ResolveKeyBytes(IConfiguration configuration)
     {
         var secret = configuration["Jwt:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secret))
+            secret = configuration["JWT_SECRET_KEY"] ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
+
         if (string.IsNullOrWhiteSpace(secret) || secret.Length < MinimumSecretLength)
             throw new InvalidOperationException(
-                $"Jwt:SecretKey ausente ou com menos de {MinimumSecretLength} caracteres. " +
-                "Defina via variável de ambiente Jwt__SecretKey ou dotnet user-secrets.");
+                $"JWT Secret Key ausente ou com menos de {MinimumSecretLength} caracteres. " +
+                "Defina via variável de ambiente JWT_SECRET_KEY no .env.");
 
         return Encoding.UTF8.GetBytes(secret);
     }

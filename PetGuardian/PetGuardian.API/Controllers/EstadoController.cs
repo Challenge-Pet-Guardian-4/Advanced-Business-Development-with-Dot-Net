@@ -42,11 +42,6 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
     public IActionResult Create([FromBody] EstadoRequest request)
     {
         logger.LogInformation("HTTP POST /api/estado: Cadastrando estado '{Nome}'.", request.NomeEstado);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/estado: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = estadoService.Create(request);
         logger.LogInformation("HTTP POST /api/estado: Estado {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -60,11 +55,6 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
     public IActionResult Update(Guid id, [FromBody] EstadoRequest request)
     {
         logger.LogInformation("HTTP PUT /api/estado/{Id}: Atualizando estado '{Nome}'.", id, request.NomeEstado);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/estado/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = estadoService.Update(id, request);
         if (updated is null)
         {

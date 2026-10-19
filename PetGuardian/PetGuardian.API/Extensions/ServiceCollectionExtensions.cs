@@ -24,9 +24,14 @@ public static class PetGuardianServiceCollectionExtensions
         IConfiguration configuration,
         string connectionStringName = "PetGuardianOracle")
     {
-        var connectionString = configuration.GetConnectionString(connectionStringName)
-            ?? throw new InvalidOperationException(
-                $"Connection string '{connectionStringName}' não encontrada.");
+        var connectionString = configuration.GetConnectionString(connectionStringName);
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            var user = configuration["ORACLE_APP_USER"];
+            var pass = configuration["ORACLE_APP_PASSWORD"];
+            var dataSource = configuration["ORACLE_DATA_SOURCE"] ?? "oracle.fiap.com.br:1521/ORCL";
+            connectionString = $"User Id={user};Password={pass};Data Source={dataSource};";
+        }
 
         services.AddDbContext<PetGuardianContext>(options =>
             options.UseOracle(connectionString, b =>
@@ -46,7 +51,6 @@ public static class PetGuardianServiceCollectionExtensions
         services.AddScoped<IAulaRepository, AulaRepository>();
         services.AddScoped<IHistoricoRepository, HistoricoRepository>();
         services.AddScoped<IUsuarioPetRepository, UsuarioPetRepository>();
-        services.AddScoped<IUsuarioEnderecoRepository, UsuarioEnderecoRepository>();
 
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
@@ -88,12 +92,11 @@ public static class PetGuardianServiceCollectionExtensions
         services.AddScoped<IUsuarioQueryService, UsuarioQueryService>();
         services.AddScoped<IHistoricoQueryService, HistoricoQueryService>();
 
-        // Catálogo NoSQL (MongoDB)
-        services.AddScoped<ITrilhaCatalogoService, TrilhaCatalogoService>();
+        // NoSQL (MongoDB Atlas)
+        services.AddScoped<IConteudoAulaService, ConteudoAulaService>();
 
         // Join tables
         services.AddScoped<IUsuarioPetService, UsuarioPetService>();
-        services.AddScoped<IUsuarioEnderecoService, UsuarioEnderecoService>();
 
         // Segurança / Autenticação
         services.AddScoped<ITokenService, TokenService>();

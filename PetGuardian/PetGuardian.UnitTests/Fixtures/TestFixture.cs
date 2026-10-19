@@ -20,14 +20,15 @@ public class TestFixture
         );
     }
 
-    public Usuario CriarUsuarioValido(string nome = "Carlos Silva", string email = "carlos@email.com", Guid? telefoneId = null)
+    public Usuario CriarUsuarioValido(string nome = "Carlos Silva", string email = "carlos@email.com", Guid? telefoneId = null, Guid? enderecoId = null)
     {
         return new Usuario(
             nome: nome,
             email: email,
             senha: "senhaSegura123",
             role: RoleUsuario.Comum,
-            telefoneId: telefoneId ?? Guid.NewGuid()
+            telefoneId: telefoneId ?? Guid.NewGuid(),
+            enderecoId: enderecoId ?? Guid.NewGuid()
         );
     }
 
@@ -70,7 +71,6 @@ public class TestFixture
             descricao: "Ensinando o comando senta com petisco.",
             pontosAula: 20,
             dificuldade: "Facil",
-            conteudo: "Guia passo a passo do treino.",
             concluida: false,
             moduloId: moduloId ?? Guid.NewGuid()
         );
@@ -114,11 +114,6 @@ public class TestFixture
     public Historico CriarHistoricoValido(string tipo = "CONSULTA_ROTINA", Guid? petId = null)
     {
         return new Historico(tipo, DateTime.UtcNow, petId ?? Guid.NewGuid());
-    }
-
-    public UsuarioEndereco CriarUsuarioEnderecoValido(Guid? usuarioId = null, Guid? enderecoId = null)
-    {
-        return new UsuarioEndereco(usuarioId ?? Guid.NewGuid(), enderecoId ?? Guid.NewGuid());
     }
 
     public UsuarioPet CriarUsuarioPetValido(Guid? usuarioId = null, Guid? petId = null, bool responPrinc = true)

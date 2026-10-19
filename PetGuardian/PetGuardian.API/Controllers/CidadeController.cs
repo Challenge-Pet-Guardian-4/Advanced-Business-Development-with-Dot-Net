@@ -51,11 +51,6 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
     public IActionResult Create([FromBody] CidadeRequest request)
     {
         logger.LogInformation("HTTP POST /api/cidade: Cadastrando cidade '{Nome}' no Estado {EstadoId}.", request.NomeCidade, request.EstadoId);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP POST /api/cidade: ModelState inválido.");
-            return BadRequest(ModelState);
-        }
         var created = cidadeService.Create(request);
         logger.LogInformation("HTTP POST /api/cidade: Cidade {Id} cadastrada com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -69,11 +64,6 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
     public IActionResult Update(Guid id, [FromBody] CidadeRequest request)
     {
         logger.LogInformation("HTTP PUT /api/cidade/{Id}: Atualizando cidade '{Nome}'.", id, request.NomeCidade);
-        if (!ModelState.IsValid)
-        {
-            logger.LogWarning("HTTP PUT /api/cidade/{Id}: ModelState inválido.", id);
-            return BadRequest(ModelState);
-        }
         var updated = cidadeService.Update(id, request);
         if (updated is null)
         {

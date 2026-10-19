@@ -1,4 +1,4 @@
-﻿using PetGuardian.Domain.Common;
+using PetGuardian.Domain.Common;
 using PetGuardian.Domain.Exceptions;
 
 namespace PetGuardian.Domain.Entities;
@@ -14,6 +14,8 @@ public sealed class Endereco : BaseEntity
 
     public Guid    BairroId { get; private set; }
     public Bairro? Bairro   { get; private set; }
+
+    public List<Usuario> Usuarios { get; private set; } = [];
 
     private Endereco() { }
 

@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
@@ -18,7 +18,7 @@ public class AuthorizationIntegrationTests(CustomWebApplicationFactory factory)
     [InlineData("/api/tarefa")]
     [InlineData("/api/usuario")]
     [InlineData("/api/estado")]
-    [InlineData("/api/catalogo/trilhas")]
+    [InlineData("/api/trilha")]
     public async Task Get_SemToken_DeveRetornar401Unauthorized(string rota)
     {
         // Act
@@ -104,7 +104,7 @@ public class AuthorizationIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Post_UsuarioAdmin_Anonimo_DeveRetornar403Forbidden()
     {
         // Arrange
-        var request = new UsuarioRequest("Invasor", "invasor@teste.com", "senha123", RoleUsuario.Admin, Guid.NewGuid());
+        var request = new UsuarioRequest("Invasor", "invasor@teste.com", "senha123", RoleUsuario.Admin, "11", "987654321", new EnderecoRequest("01001-000", "100"));
 
         // Act
         var response = await _anonimo.PostAsJsonAsync("/api/usuario", request);
@@ -117,11 +117,9 @@ public class AuthorizationIntegrationTests(CustomWebApplicationFactory factory)
     public async Task Put_Usuario_ComumTentandoSePromoverAAdmin_DeveRetornar403Forbidden()
     {
         // Arrange
-        var tel = await (await _anonimo.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "966665555")))
-            .Content.ReadFromJsonAsync<TelefoneResponse>();
         var email = $"u{Guid.NewGuid():N}"[..20] + "@teste.com";
         var usuario = await (await _anonimo.PostAsJsonAsync("/api/usuario",
-                new UsuarioRequest("Usuario Comum", email, "senhaSegura123", RoleUsuario.Comum, tel!.Id)))
+                new UsuarioRequest("Usuario Comum", email, "senhaSegura123", RoleUsuario.Comum, "11", "966665555", new EnderecoRequest("01001-000", "100"))))
             .Content.ReadFromJsonAsync<UsuarioResponse>();
 
         var login = await (await _anonimo.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, "senhaSegura123")))

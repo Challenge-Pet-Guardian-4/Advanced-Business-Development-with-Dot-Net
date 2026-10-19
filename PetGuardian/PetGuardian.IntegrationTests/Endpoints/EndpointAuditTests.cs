@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -97,29 +97,24 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
 
         // 7. USUARIO
         var emailAuditoria = $"aud_{Guid.NewGuid():N}"[..25] + "@clyvo.com";
-        var userPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioRequest("Auditor Clyvo", emailAuditoria, "Senha@1234", RoleUsuario.Premium, telefone.Id)));
+        var userPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created,
+            JsonContent.Create(new UsuarioRequest("Auditor Clyvo", emailAuditoria, "Senha@1234", RoleUsuario.Premium, "41", "991112233", new EnderecoRequest("01001-000", "250"))));
         var usuario = await userPostRes.Content.ReadFromJsonAsync<UsuarioResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/usuario", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuario/{usuario!.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuario/by-email?email={emailAuditoria}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuario/{usuario.Id}/score", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/usuario/{usuario.Id}", HttpStatusCode.OK, JsonContent.Create(new UsuarioUpdateRequest("Auditor Clyvo Senior", emailAuditoria, "NovaSenha@123", RoleUsuario.Premium)));
+        await ExecutarAsync(HttpMethod.Put, $"/api/usuario/{usuario.Id}", HttpStatusCode.OK,
+            JsonContent.Create(new UsuarioUpdateRequest("Auditor Clyvo Senior", emailAuditoria, "NovaSenha@123", RoleUsuario.Premium, "41", "994445566", new EnderecoRequest("01001-000", "250"))));
 
-        // 8. USUARIO-ENDERECO
-        var uEndPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuarioendereco", HttpStatusCode.Created, JsonContent.Create(new UsuarioEnderecoRequest(usuario.Id, endereco.Id)));
-        await ExecutarAsync(HttpMethod.Get, "/api/usuarioendereco", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Get, $"/api/usuarioendereco/by-usuario/{usuario.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Get, $"/api/usuarioendereco/by-endereco/{endereco.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Delete, $"/api/usuarioendereco/{usuario.Id}/{endereco.Id}", HttpStatusCode.NoContent);
-
-        // 9. RACA
+        // 8. RACA
         var racaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/raca", HttpStatusCode.Created, JsonContent.Create(new RacaRequest("Golden Retriever")));
         var raca = await racaPostRes.Content.ReadFromJsonAsync<RacaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/raca", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/raca/{raca!.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Put, $"/api/raca/{raca.Id}", HttpStatusCode.OK, JsonContent.Create(new RacaRequest("Golden Retriever Puro")));
 
-        // 10. PET
+        // 9. PET
         var petPostRes = await ExecutarAsync(HttpMethod.Post, "/api/pet", HttpStatusCode.Created, JsonContent.Create(new PetRequest("Thor", DateTime.UtcNow.AddYears(-3), SexoPet.Macho, PortePet.Grande, true, raca.Id)));
         var pet = await petPostRes.Content.ReadFromJsonAsync<PetResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/pet", HttpStatusCode.OK);
@@ -127,69 +122,75 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, $"/api/pet/{pet.Id}/historico", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Put, $"/api/pet/{pet.Id}", HttpStatusCode.OK, JsonContent.Create(new PetRequest("Thor Odinson", DateTime.UtcNow.AddYears(-3), SexoPet.Macho, PortePet.Grande, true, raca.Id)));
 
-        // 11. USUARIO-PET & REDE DE CUIDADO
+        // 10. USUARIO-PET & REDE DE CUIDADO
         var uPetPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuariopet", HttpStatusCode.Created, JsonContent.Create(new UsuarioPetRequest(usuario.Id, pet.Id, ResponPrinc: true)));
         await ExecutarAsync(HttpMethod.Get, "/api/usuariopet", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/by-usuario/{usuario.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/by-pet/{pet.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/rede-cuidado/{usuario.Id}", HttpStatusCode.OK);
 
-        // UsuÃ¡rio secundÃ¡rio para convite
+        // Usuário secundário para convite
         var emailSec = $"sec_{Guid.NewGuid():N}"[..25] + "@clyvo.com";
-        var userSecPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioRequest("Cuidador Convidado", emailSec, "Senha@123", RoleUsuario.Comum, telefone.Id)));
+        var userSecPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created,
+            JsonContent.Create(new UsuarioRequest("Cuidador Convidado", emailSec, "Senha@123", RoleUsuario.Comum, "41", "992223344", new EnderecoRequest("01001-000", "250"))));
         var userSec = await userSecPostRes.Content.ReadFromJsonAsync<UsuarioResponse>();
 
         await ExecutarAsync(HttpMethod.Post, "/api/usuariopet/invite/by-usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioPetInviteByUsuarioRequest(usuario.Id, userSec!.Id, pet.Id)));
         await ExecutarAsync(HttpMethod.Put, $"/api/usuariopet/{userSec.Id}/{pet.Id}", HttpStatusCode.OK, JsonContent.Create(new UsuarioPetUpdateRequest(ResponPrinc: false)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuariopet/{userSec.Id}/{pet.Id}", HttpStatusCode.NoContent);
 
-        // Convite por e-mail (cria usuÃ¡rio convidado previamente)
+        // Convite por e-mail (cria usuário convidado previamente)
         var emailInvite = $"inv_{Guid.NewGuid():N}"[..25] + "@clyvo.com";
-        var userInvitePostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created, JsonContent.Create(new UsuarioRequest("Cuidador Email", emailInvite, "Senha@123", RoleUsuario.Comum, telefone.Id)));
+        var userInvitePostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuario", HttpStatusCode.Created,
+            JsonContent.Create(new UsuarioRequest("Cuidador Email", emailInvite, "Senha@123", RoleUsuario.Comum, "41", "993334455", new EnderecoRequest("01001-000", "250"))));
         var userInvite = await userInvitePostRes.Content.ReadFromJsonAsync<UsuarioResponse>();
 
         await ExecutarAsync(HttpMethod.Post, "/api/usuariopet/invite/by-email", HttpStatusCode.Created, JsonContent.Create(new UsuarioPetInviteByEmailRequest(usuario.Id, emailInvite, pet.Id)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuariopet/{userInvite!.Id}/{pet.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuario/{userInvite.Id}", HttpStatusCode.NoContent);
 
-        // 12. STATUS
+        // 11. STATUS
         var statusListRes = await ExecutarAsync(HttpMethod.Get, "/api/status", HttpStatusCode.OK);
         var statusList = await statusListRes.Content.ReadFromJsonAsync<List<StatusResponse>>();
         var statusPendente = statusList!.First(s => s.NomeStatus == "PENDENTE");
         await ExecutarAsync(HttpMethod.Get, $"/api/status/{statusPendente.Id}", HttpStatusCode.OK);
 
-        // 13. TAREFA
-        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("VacinaÃ§Ã£o V10", 50, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
+        // 12. TAREFA
+        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("Vacinação V10", 50, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
         var tarefa = await tarefaPostRes.Content.ReadFromJsonAsync<TarefaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/tarefa", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/{tarefa!.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-pet/{pet.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-usuario/{usuario.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-status/{statusPendente.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("VacinaÃ§Ã£o V10 + Raiva", 60, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
+        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("Vacinação V10 + Raiva", 60, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
         await ExecutarAsync(HttpMethod.Post, $"/api/tarefa/{tarefa.Id}/concluir", HttpStatusCode.OK, JsonContent.Create(new TarefaConcluirRequest(usuario.Id)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.NoContent);
 
-        // 14. TRILHA
-        var trilhaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/trilha", HttpStatusCode.Created, JsonContent.Create(new TrilhaRequest("Trilha SaÃºde Canina", "Aprenda a cuidar do seu cÃ£o", pet.Id)));
+        // 13. TRILHA
+        var trilhaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/trilha", HttpStatusCode.Created, JsonContent.Create(new TrilhaRequest("Trilha Saúde Canina", "Aprenda a cuidar do seu cão", pet.Id)));
         var trilha = await trilhaPostRes.Content.ReadFromJsonAsync<TrilhaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/trilha", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/trilha/{trilha!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/trilha/{trilha.Id}", HttpStatusCode.OK, JsonContent.Create(new TrilhaUpdateRequest("Trilha SaÃºde Canina AvanÃ§ada", "Desc atualizada")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/trilha/{trilha.Id}", HttpStatusCode.OK, JsonContent.Create(new TrilhaUpdateRequest("Trilha Saúde Canina Avançada", "Desc atualizada")));
 
-        // 15. MODULO
-        var moduloPostRes = await ExecutarAsync(HttpMethod.Post, "/api/modulo", HttpStatusCode.Created, JsonContent.Create(new ModuloRequest("MÃ³dulo de NutriÃ§Ã£o", "45 min", "AlimentaÃ§Ã£o balanceada", trilha.Id)));
+        // 14. MODULO
+        var moduloPostRes = await ExecutarAsync(HttpMethod.Post, "/api/modulo", HttpStatusCode.Created, JsonContent.Create(new ModuloRequest("Módulo de Nutrição", "45 min", "Alimentação balanceada", trilha.Id)));
         var modulo = await moduloPostRes.Content.ReadFromJsonAsync<ModuloResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/modulo", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/modulo/{modulo!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/modulo/{modulo.Id}", HttpStatusCode.OK, JsonContent.Create(new ModuloUpdateRequest("MÃ³dulo de NutriÃ§Ã£o e HidrataÃ§Ã£o", "50 min", "Desc atualizada")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/modulo/{modulo.Id}", HttpStatusCode.OK, JsonContent.Create(new ModuloUpdateRequest("Módulo de Nutrição e Hidratação", "50 min", "Desc atualizada")));
 
-        // 16. AULA
-        var aulaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/aula", HttpStatusCode.Created, JsonContent.Create(new AulaRequest("PorÃ§Ãµes DiÃ¡rias", "Como calcular porÃ§Ãµes", 15, "Iniciante", "VÃ­deo e texto explicativo", false, modulo.Id)));
+        // 15. AULA & CONTEUDO_AULA (MongoDB)
+        var aulaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/aula", HttpStatusCode.Created, JsonContent.Create(new AulaRequest("Porções Diárias", "Como calcular porções", 15, "Iniciante", false, modulo.Id)));
         var aula = await aulaPostRes.Content.ReadFromJsonAsync<AulaResponse>();
+        await ExecutarAsync(HttpMethod.Post, $"/api/aula/{aula!.Id}/conteudo", HttpStatusCode.Created, JsonContent.Create(new ConteudoAulaRequest("ARTIGO", "# Porções Diárias\n\nCálculo de ração.", ["https://clyvo.com/guia.pdf"])));
+        await ExecutarAsync(HttpMethod.Get, $"/api/aula/{aula.Id}/conteudo", HttpStatusCode.OK);
+        await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}/conteudo", HttpStatusCode.OK, JsonContent.Create(new ConteudoAulaRequest("VIDEO", "# Porções Diárias Atualizado", [])));
         await ExecutarAsync(HttpMethod.Get, "/api/aula", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Get, $"/api/aula/{aula!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}", HttpStatusCode.OK, JsonContent.Create(new AulaUpdateRequest("PorÃ§Ãµes DiÃ¡rias e Petiscos", "CÃ¡lculo detalhado", 20, "Iniciante", "Texto revisado", true)));
+        await ExecutarAsync(HttpMethod.Get, $"/api/aula/{aula.Id}", HttpStatusCode.OK);
+        await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}", HttpStatusCode.OK, JsonContent.Create(new AulaUpdateRequest("Porções Diárias e Petiscos", "Cálculo detalhado", 20, "Iniciante", true)));
+        await ExecutarAsync(HttpMethod.Delete, $"/api/aula/{aula.Id}/conteudo", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/aula/{aula.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/modulo/{modulo.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/trilha/{trilha.Id}", HttpStatusCode.NoContent);

@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
@@ -28,12 +28,9 @@ public class TarefaControllerIntegrationTests(CustomWebApplicationFactory factor
         var pet = await petPost.Content.ReadFromJsonAsync<PetResponse>();
         Assert.NotNull(pet);
 
-        var telPost = await _client.PostAsJsonAsync("/api/telefone", new TelefoneRequest("11", "988887777"));
-        var tel = await telPost.Content.ReadFromJsonAsync<TelefoneResponse>();
-        Assert.NotNull(tel);
-
         var email = $"cuidador_{Guid.NewGuid():N}"[..25] + "@teste.com";
-        var userPost = await _client.PostAsJsonAsync("/api/usuario", new UsuarioRequest("Cuidador Tarefa", email, "senha123", RoleUsuario.Comum, tel.Id));
+        var userPost = await _client.PostAsJsonAsync("/api/usuario",
+            new UsuarioRequest("Cuidador Tarefa", email, "senha123", RoleUsuario.Comum, "11", "988887777", new EnderecoRequest("01001-000", "100")));
         var user = await userPost.Content.ReadFromJsonAsync<UsuarioResponse>();
         Assert.NotNull(user);
 

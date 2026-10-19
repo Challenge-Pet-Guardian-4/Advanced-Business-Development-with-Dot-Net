@@ -38,6 +38,12 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(u => u.TelefoneId).IsUnique();
 
+        builder.Property(u => u.EnderecoId).HasColumnName("endereco_id_endereco").IsRequired();
+        builder.HasOne(u => u.Endereco)
+            .WithMany(e => e.Usuarios)
+            .HasForeignKey(u => u.EnderecoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(u => u.Tarefas)
             .WithOne(t => t.Usuario)
             .HasForeignKey(t => t.UsuarioId)

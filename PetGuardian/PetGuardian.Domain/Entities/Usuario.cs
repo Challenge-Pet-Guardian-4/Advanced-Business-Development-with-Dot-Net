@@ -7,7 +7,7 @@ namespace PetGuardian.Domain.Entities;
 
 /// <summary>
 /// Usuário do sistema com senha criptografada via BCrypt e Salt. Possui telefone exclusivo (1:1),
-/// endereços via N:N (UsuarioEndereco) e relacionamento N:N com Pet via UsuarioPet.
+/// endereço vinculado (N:1) e relacionamento N:N com Pet via UsuarioPet.
 /// </summary>
 public sealed class Usuario : BaseEntity
 {
@@ -22,13 +22,15 @@ public sealed class Usuario : BaseEntity
     public Guid      TelefoneId { get; private set; }
     public Telefone? Telefone   { get; private set; }
 
-    public List<UsuarioEndereco> Enderecos      { get; private set; } = [];
-    public List<UsuarioPet>      PetsVinculados { get; private set; } = [];
-    public List<Tarefa>          Tarefas        { get; private set; } = [];
+    public Guid      EnderecoId { get; private set; }
+    public Endereco? Endereco   { get; private set; }
+
+    public List<UsuarioPet> PetsVinculados { get; private set; } = [];
+    public List<Tarefa>     Tarefas        { get; private set; } = [];
 
     private Usuario() { }
 
-    public Usuario(string nome, string email, string senha, RoleUsuario role, Guid telefoneId)
+    public Usuario(string nome, string email, string senha, RoleUsuario role, Guid telefoneId, Guid enderecoId)
     {
         AtualizarNome(nome);
         AtualizarEmail(email);
@@ -36,7 +38,10 @@ public sealed class Usuario : BaseEntity
         Role = role;
         if (telefoneId == Guid.Empty)
             throw new DomainException("O usuário deve ter um telefone válido.");
+        if (enderecoId == Guid.Empty)
+            throw new DomainException("O usuário deve ter um endereço válido.");
         TelefoneId = telefoneId;
+        EnderecoId = enderecoId;
     }
 
     public void AtualizarNome(string novoNome)
@@ -77,4 +82,11 @@ public sealed class Usuario : BaseEntity
     }
 
     public void AtualizarRole(RoleUsuario novaRole) => Role = novaRole;
+
+    public void AtualizarEndereco(Guid enderecoId)
+    {
+        if (enderecoId == Guid.Empty)
+            throw new DomainException("O usuário deve ter um endereço válido.");
+        EnderecoId = enderecoId;
+    }
 }
