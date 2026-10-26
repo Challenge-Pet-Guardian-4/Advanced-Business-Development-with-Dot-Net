@@ -14,7 +14,6 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class UsuarioController(
     IUsuarioService usuarioService,
-    IUsuarioQueryService usuarioQueryService,
     ILogger<UsuarioController> logger) : ApiControllerBase
 {
     /// <summary>Lista usuários com paginação, ordenação e filtros (somente Admin).</summary>
@@ -26,7 +25,7 @@ public class UsuarioController(
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] UsuarioFilter filter)
     {
         logger.LogInformation("HTTP GET /api/usuario: pesquisando usuários (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
-        var resultado = usuarioQueryService.Search(query, filter);
+        var resultado = usuarioService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {

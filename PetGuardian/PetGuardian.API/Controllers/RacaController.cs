@@ -8,7 +8,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class RacaController(IRacaService racaService, ILogger<RacaController> logger) : ControllerBase
+public class RacaController(IRacaService racaService, ILogger<RacaController> logger) : ApiControllerBase
 {
     /// <summary>Lista todos os registros de raças cadastrados.</summary>
     [HttpGet]
@@ -16,7 +16,7 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/raca: Listando todas as raças.");
-        return Ok(racaService.GetAll());
+        return Ok(racaService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém um registro de raça pelo seu identificador único (ID).</summary>
@@ -32,7 +32,7 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
             logger.LogWarning("HTTP GET /api/raca/{Id}: Raça não encontrada.", id);
             return NotFound();
         }
-        return Ok(raca);
+        return Ok(ComLinks(raca));
     }
 
     /// <summary>Cadastra um novo registro de raça na base de dados.</summary>
@@ -44,7 +44,7 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
         logger.LogInformation("HTTP POST /api/raca: Cadastrando raça '{Nome}'.", request.NomeRaca);
         var created = racaService.Create(request);
         logger.LogInformation("HTTP POST /api/raca: Raça {Id} cadastrada com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza uma raça existente.</summary>
@@ -62,7 +62,7 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/raca/{Id}: Raça atualizada com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Exclui um registro de raça cadastrado pelo seu ID.</summary>
@@ -80,4 +80,15 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
         logger.LogInformation("HTTP DELETE /api/raca/{Id}: Raça excluída com sucesso.", id);
         return NoContent();
     }
+
+    private RacaResponse ComLinks(RacaResponse r) => r with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = r.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = r.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = r.Id }),
+            LinkTo("pets", "GET", "GetByRaca", new { racaId = r.Id }, "Pet")
+        ]
+    };
 }

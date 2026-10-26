@@ -11,7 +11,6 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class HistoricoController(
     IHistoricoService historicoService,
-    IHistoricoQueryService historicoQueryService,
     ILogger<HistoricoController> logger) : ApiControllerBase
 {
     /// <summary>Lista históricos com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
@@ -21,7 +20,7 @@ public class HistoricoController(
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] HistoricoFilter filter)
     {
         logger.LogInformation("HTTP GET /api/historico: pesquisando históricos (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
-        var resultado = historicoQueryService.Search(query, filter);
+        var resultado = historicoService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {

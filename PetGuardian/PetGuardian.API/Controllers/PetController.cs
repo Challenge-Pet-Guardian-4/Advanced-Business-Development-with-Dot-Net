@@ -11,7 +11,6 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class PetController(
     IPetService petService,
-    IPetQueryService petQueryService,
     ILogger<PetController> logger) : ApiControllerBase
 {
     /// <summary>Lista pets com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
@@ -22,7 +21,7 @@ public class PetController(
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] PetFilter filter)
     {
         logger.LogInformation("HTTP GET /api/pet: pesquisando pets (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
-        var resultado = petQueryService.Search(query, filter);
+        var resultado = petService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {

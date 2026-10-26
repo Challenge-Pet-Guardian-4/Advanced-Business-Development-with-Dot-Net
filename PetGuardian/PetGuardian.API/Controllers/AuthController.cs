@@ -45,6 +45,17 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
         }
 
         var perfil = authService.GetPerfil(usuarioId);
-        return perfil is null ? NotFound() : Ok(perfil);
+        if (perfil is null)
+            return NotFound();
+
+        return Ok(perfil with
+        {
+            Links =
+            [
+                LinkTo("self", "GET", nameof(Me)),
+                LinkTo("usuario", "GET", "GetById", new { id = perfil.Id }, "Usuario"),
+                LinkTo("score", "GET", "GetScore", new { id = perfil.Id }, "Usuario")
+            ]
+        });
     }
 }

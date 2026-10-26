@@ -11,7 +11,6 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class TarefaController(
     ITarefaService tarefaService,
-    ITarefaQueryService tarefaQueryService,
     ILogger<TarefaController> logger) : ApiControllerBase
 {
     /// <summary>Lista tarefas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
@@ -22,7 +21,7 @@ public class TarefaController(
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] TarefaFilter filter)
     {
         logger.LogInformation("HTTP GET /api/tarefa: pesquisando tarefas (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
-        var resultado = tarefaQueryService.Search(query, filter);
+        var resultado = tarefaService.Search(query, filter);
 
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {

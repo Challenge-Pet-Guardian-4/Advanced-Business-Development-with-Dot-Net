@@ -8,7 +8,7 @@ using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
-/// <summary>Emissão/validação de JWT (RFC 7519, HS256). O secret vem SEMPRE de configuração (Jwt:SecretKey).</summary>
+/// <summary>Emissão de JWT (RFC 7519, HS256). O secret vem SEMPRE de configuração (Jwt:SecretKey).</summary>
 public class TokenService(IConfiguration configuration) : ITokenService
 {
     public const string Issuer = "PetGuardian.API";
@@ -55,32 +55,5 @@ public class TokenService(IConfiguration configuration) : ITokenService
         };
 
         return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
-    }
-
-    public (bool IsValido, ClaimsPrincipal? Principal) ValidarToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-            return (false, null);
-
-        var validationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(ResolveKeyBytes(configuration)),
-            ValidateIssuer = true,
-            ValidIssuer = Issuer,
-            ValidateAudience = true,
-            ValidAudience = Audience,
-            ClockSkew = TimeSpan.Zero
-        };
-
-        try
-        {
-            var principal = new JwtSecurityTokenHandler().ValidateToken(token, validationParameters, out _);
-            return (true, principal);
-        }
-        catch
-        {
-            return (false, null);
-        }
     }
 }

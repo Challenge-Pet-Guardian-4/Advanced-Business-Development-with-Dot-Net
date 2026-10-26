@@ -94,4 +94,32 @@ public class AulaTests(TestFixture fixture)
         // Assert
         Assert.Equal("Esta aula já foi concluída.", ex.Message);
     }
+
+    [Fact]
+    public void Desmarcar_AulaConcluida_DeveMarcarComoNaoConcluida()
+    {
+        // Arrange
+        var aula = fixture.CriarAulaValida();
+        aula.Concluir();
+        Assert.True(aula.Concluida);
+
+        // Act
+        aula.Desmarcar();
+
+        // Assert
+        Assert.False(aula.Concluida);
+    }
+
+    [Fact]
+    public void Desmarcar_AulaNaoConcluida_DeveLancarDomainException()
+    {
+        // Arrange
+        var aula = fixture.CriarAulaValida();
+
+        // Act
+        var ex = Assert.Throws<DomainException>(() => aula.Desmarcar());
+
+        // Assert
+        Assert.Equal("Esta aula não está concluída.", ex.Message);
+    }
 }

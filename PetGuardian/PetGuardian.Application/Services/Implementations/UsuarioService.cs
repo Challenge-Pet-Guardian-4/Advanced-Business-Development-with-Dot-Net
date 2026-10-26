@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
@@ -16,10 +18,22 @@ public sealed class UsuarioService(
     ITarefaRepository          tarefaRepository,
     ILogger<UsuarioService>    logger) : IUsuarioService
 {
-    public IReadOnlyList<UsuarioResponse> GetAll()
+    public PagedResponse<UsuarioResponse> Search(PageQuery query, UsuarioFilter filter)
     {
-        logger.LogInformation("Buscando todos os usuários cadastrados.");
-        return usuarioRepository.GetAll().Select(UsuarioResponse.FromDomain).ToList();
+        using var activity = PetGuardianActivitySource.Source.StartActivity("UsuarioService.Search");
+        var q = query.Normalized();
+        logger.LogInformation("Pesquisando usuários: página {Page}, tamanho {PageSize}, ordenação {SortBy} {SortDir}.",
+            q.Page, q.PageSize, q.SortBy ?? nameof(Usuario.Nome), q.SortDir);
+
+        var nome = filter.Nome?.Trim().ToLowerInvariant();
+        var email = filter.Email?.Trim().ToLowerInvariant();
+        Expression<Func<Usuario, bool>> predicate = u =>
+            (nome == null || u.Nome.ToLower().Contains(nome))
+            && (email == null || u.Email.ToLower().Contains(email))
+            && (filter.Role == null || u.Role == filter.Role);
+
+        var resultado = usuarioRepository.GetPaged(predicate, q.SortBy ?? nameof(Usuario.Nome), q.Descending, q.Page, q.PageSize);
+        return PagedResponse<UsuarioResponse>.Create(resultado.Map(UsuarioResponse.FromDomain), q);
     }
 
     public UsuarioResponse? GetById(Guid id)

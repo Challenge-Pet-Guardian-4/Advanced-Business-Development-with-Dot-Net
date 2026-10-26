@@ -77,7 +77,7 @@ public static class PetGuardianServiceCollectionExtensions
         services.AddScoped<IStatusService,   StatusService>();
         services.AddScoped<ITelefoneService, TelefoneService>();
 
-        // Core
+        // Core (comandos + consultas paginadas)
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IPetService, PetService>();
         services.AddScoped<ITarefaService, TarefaService>();
@@ -85,12 +85,6 @@ public static class PetGuardianServiceCollectionExtensions
         services.AddScoped<IModuloService, ModuloService>();
         services.AddScoped<IAulaService, AulaService>();
         services.AddScoped<IHistoricoService, HistoricoService>();
-
-        // Consultas paginadas (leitura)
-        services.AddScoped<IPetQueryService, PetQueryService>();
-        services.AddScoped<ITarefaQueryService, TarefaQueryService>();
-        services.AddScoped<IUsuarioQueryService, UsuarioQueryService>();
-        services.AddScoped<IHistoricoQueryService, HistoricoQueryService>();
 
         // NoSQL (MongoDB Atlas)
         services.AddScoped<IConteudoAulaService, ConteudoAulaService>();

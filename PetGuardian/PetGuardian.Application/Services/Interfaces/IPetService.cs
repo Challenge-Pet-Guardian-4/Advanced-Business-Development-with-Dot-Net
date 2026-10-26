@@ -1,10 +1,11 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.Common;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
 public interface IPetService
 {
-    IReadOnlyList<PetResponse> GetAll();
+    PagedResponse<PetResponse> Search(PageQuery query, PetFilter filter);
     PetResponse? GetById(Guid id);
     IReadOnlyList<PetResponse> GetByRacaId(Guid racaId);
     IReadOnlyList<PetHistoricoItemResponse> GetHistorico(Guid petId);

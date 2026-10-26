@@ -1,5 +1,7 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Implementations;
@@ -18,6 +20,24 @@ public class ModuloServiceTests(TestFixture fixture)
 
     private ModuloService CreateService() =>
         new(_moduloRepoMock.Object, _trilhaRepoMock.Object, _loggerMock.Object);
+
+    [Fact]
+    public void Search_ComFiltroPorTrilha_DeveRetornarEnvelopePaginado()
+    {
+        // Arrange
+        var service = CreateService();
+        var modulo = fixture.CriarModuloValido();
+        _moduloRepoMock.Setup(r => r.GetPaged(It.IsAny<Expression<Func<Modulo, bool>>?>(), "Nome", false, 1, 10))
+            .Returns(new PagedResult<Modulo>([modulo], 1));
+
+        // Act
+        var resultado = service.Search(new PageQuery(), new ModuloFilter { TrilhaId = modulo.TrilhaId });
+
+        // Assert
+        Assert.Single(resultado.Items);
+        Assert.Equal(modulo.TrilhaId, resultado.Items[0].TrilhaId);
+        Assert.Equal(1, resultado.TotalCount);
+    }
 
     [Fact]
     public void Create_TrilhaValida_DeveCriarModulo()

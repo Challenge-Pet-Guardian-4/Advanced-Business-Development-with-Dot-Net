@@ -9,7 +9,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class EnderecoController(IEnderecoService enderecoService, ILogger<EnderecoController> logger) : ControllerBase
+public class EnderecoController(IEnderecoService enderecoService, ILogger<EnderecoController> logger) : ApiControllerBase
 {
     /// <summary>Lista todos os endereços.</summary>
     [HttpGet]
@@ -17,7 +17,7 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/endereco: Listando todos os endereços.");
-        return Ok(enderecoService.GetAll());
+        return Ok(enderecoService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém um endereço pelo Id.</summary>
@@ -33,7 +33,7 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
             logger.LogWarning("HTTP GET /api/endereco/{Id}: Endereço não encontrado.", id);
             return NotFound();
         }
-        return Ok(endereco);
+        return Ok(ComLinks(endereco));
     }
 
     /// <summary>Cria um endereço.</summary>
@@ -46,7 +46,7 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
         logger.LogInformation("HTTP POST /api/endereco: Cadastrando endereço com CEP {Cep}.", request.Cep);
         var created = enderecoService.Create(request);
         logger.LogInformation("HTTP POST /api/endereco: Endereço {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza um endereço existente (o CEP é reconsultado no ViaCEP).</summary>
@@ -64,7 +64,7 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/endereco/{Id}: Endereço atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove um endereço pelo Id.</summary>
@@ -82,4 +82,15 @@ public class EnderecoController(IEnderecoService enderecoService, ILogger<Endere
         logger.LogInformation("HTTP DELETE /api/endereco/{Id}: Endereço excluído com sucesso.", id);
         return NoContent();
     }
+
+    private EnderecoResponse ComLinks(EnderecoResponse e) => e with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = e.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = e.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = e.Id }),
+            LinkTo("bairro", "GET", "GetById", new { id = e.BairroId }, "Bairro")
+        ]
+    };
 }

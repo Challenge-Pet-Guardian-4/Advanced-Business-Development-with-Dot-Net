@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Domain.Enums;
 using PetGuardian.IntegrationTests.Fixtures;
@@ -51,19 +50,30 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
     }
 
     [Fact]
-    public async Task AuditoriaGeralDeTodosOsEndpoints_VarreduraCompleta99Operacoes_DeveExecutarComSucesso()
+    public async Task AuditoriaGeralDeTodosOsEndpoints_VarreduraCompleta_DeveExecutarComSucesso()
     {
         // 1. OBSERVABILIDADE & INFRA
         await ExecutarAsync(HttpMethod.Get, "/health", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, "/health/live", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Get, "/swagger/v1/swagger.json", HttpStatusCode.OK);
+        var swaggerRes = await ExecutarAsync(HttpMethod.Get, "/swagger/v1/swagger.json", HttpStatusCode.OK);
+        var swaggerJson = await swaggerRes.Content.ReadAsStringAsync();
+        try
+        {
+            var docsDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "docs"));
+            Directory.CreateDirectory(docsDir);
+            await File.WriteAllTextAsync(Path.Combine(docsDir, "swagger.json"), swaggerJson);
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"Não foi possível exportar docs/swagger.json ({ex.Message}).");
+        }
 
         // 2. ESTADO
-        var estadoPostRes = await ExecutarAsync(HttpMethod.Post, "/api/estado", HttpStatusCode.Created, JsonContent.Create(new EstadoRequest("ParanÃ¡")));
+        var estadoPostRes = await ExecutarAsync(HttpMethod.Post, "/api/estado", HttpStatusCode.Created, JsonContent.Create(new EstadoRequest("Paraná")));
         var estado = await estadoPostRes.Content.ReadFromJsonAsync<EstadoResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/estado", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/estado/{estado!.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/estado/{estado.Id}", HttpStatusCode.OK, JsonContent.Create(new EstadoRequest("ParanÃ¡ Atualizado")));
+        await ExecutarAsync(HttpMethod.Put, $"/api/estado/{estado.Id}", HttpStatusCode.OK, JsonContent.Create(new EstadoRequest("Paraná Atualizado")));
 
         // 3. CIDADE
         var cidadePostRes = await ExecutarAsync(HttpMethod.Post, "/api/cidade", HttpStatusCode.Created, JsonContent.Create(new CidadeRequest("Curitiba", estado.Id)));
@@ -123,7 +133,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Put, $"/api/pet/{pet.Id}", HttpStatusCode.OK, JsonContent.Create(new PetRequest("Thor Odinson", DateTime.UtcNow.AddYears(-3), SexoPet.Macho, PortePet.Grande, true, raca.Id)));
 
         // 10. USUARIO-PET & REDE DE CUIDADO
-        var uPetPostRes = await ExecutarAsync(HttpMethod.Post, "/api/usuariopet", HttpStatusCode.Created, JsonContent.Create(new UsuarioPetRequest(usuario.Id, pet.Id, ResponPrinc: true)));
+        await ExecutarAsync(HttpMethod.Post, "/api/usuariopet", HttpStatusCode.Created, JsonContent.Create(new UsuarioPetRequest(usuario.Id, pet.Id, ResponPrinc: true)));
         await ExecutarAsync(HttpMethod.Get, "/api/usuariopet", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/by-usuario/{usuario.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/usuariopet/by-pet/{pet.Id}", HttpStatusCode.OK);
@@ -189,6 +199,8 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}/conteudo", HttpStatusCode.OK, JsonContent.Create(new ConteudoAulaRequest("VIDEO", "# Porções Diárias Atualizado", [])));
         await ExecutarAsync(HttpMethod.Get, "/api/aula", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/aula/{aula.Id}", HttpStatusCode.OK);
+        await ExecutarAsync(HttpMethod.Patch, $"/api/aula/{aula.Id}/concluir", HttpStatusCode.OK);
+        await ExecutarAsync(HttpMethod.Patch, $"/api/aula/{aula.Id}/desmarcar", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Put, $"/api/aula/{aula.Id}", HttpStatusCode.OK, JsonContent.Create(new AulaUpdateRequest("Porções Diárias e Petiscos", "Cálculo detalhado", 20, "Iniciante", true)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/aula/{aula.Id}/conteudo", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/aula/{aula.Id}", HttpStatusCode.NoContent);
@@ -204,7 +216,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Put, $"/api/historico/{historico.Id}", HttpStatusCode.OK, JsonContent.Create(new HistoricoUpdateRequest("CONSULTA_ROTINA_CONCLUIDA", DateTime.UtcNow)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/historico/{historico.Id}", HttpStatusCode.NoContent);
 
-        // 18. EXCLUSÃ•ES FINAIS DE CICLO
+        // 18. EXCLUSÕES FINAIS DE CICLO
         await ExecutarAsync(HttpMethod.Delete, $"/api/pet/{pet.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuario/{userSec.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/usuario/{usuario.Id}", HttpStatusCode.NoContent);
@@ -215,13 +227,13 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Delete, $"/api/raca/{raca.Id}", HttpStatusCode.NoContent);
         await ExecutarAsync(HttpMethod.Delete, $"/api/telefone/{telefone.Id}", HttpStatusCode.NoContent);
 
-        // Grava relatÃ³rio em arquivo Markdown para consumo do relatÃ³rio
+        // Grava relatório em arquivo Markdown
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("# RelatÃ³rio de Auditoria de Todos os Endpoints da API PetGuardian (.NET 10)");
+        sb.AppendLine("# Relatório de Auditoria de Todos os Endpoints da API PetGuardian (.NET 10)");
         sb.AppendLine();
-        sb.AppendLine($"Data da ExecuÃ§Ã£o: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC");
+        sb.AppendLine($"Data da Execução: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC");
         sb.AppendLine();
-        sb.AppendLine("| # | MÃ©todo | Endpoint / Rota | Status Esperado | Status Obtido | LatÃªncia | Resultado |");
+        sb.AppendLine("| # | Método | Endpoint / Rota | Status Esperado | Status Obtido | Latência | Resultado |");
         sb.AppendLine("| :--- | :---: | :--- | :---: | :---: | :---: | :---: |");
         for (int i = 0; i < _results.Count; i++)
         {
@@ -229,10 +241,8 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
             sb.AppendLine($"| {i + 1:D2} | `{r.Metodo}` | `{r.Rota}` | `{(int)r.StatusEsperado} {r.StatusEsperado}` | `{(int)r.StatusObtido} {r.StatusObtido}` | {r.LatenciaMs} ms | {r.Detalhe} |");
         }
         sb.AppendLine();
-        sb.AppendLine($"**Total de Endpoints Testados e Aprovados:** {_results.Count} operaÃ§Ãµes HTTP com 100% de sucesso.");
+        sb.AppendLine($"**Total de Endpoints Testados e Aprovados:** {_results.Count} operações HTTP com 100% de sucesso.");
 
-        // Caminho portÃ¡vel: pasta "AuditReports" ao lado do assembly de testes (existe em qualquer mÃ¡quina/CI),
-        // em vez de um caminho absoluto fixo de uma mÃ¡quina especÃ­fica.
         var reportDir = Path.Combine(AppContext.BaseDirectory, "AuditReports");
         var reportPath = Path.Combine(reportDir, "endpoint_audit_report.md");
 
@@ -240,13 +250,11 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         {
             Directory.CreateDirectory(reportDir);
             File.WriteAllText(reportPath, sb.ToString());
-            output.WriteLine($"Auditoria gravada em {reportPath}. Total de operaÃ§Ãµes: {_results.Count}");
+            output.WriteLine($"Auditoria gravada em {reportPath}. Total de operações: {_results.Count}");
         }
         catch (Exception ex)
         {
-            // A gravaÃ§Ã£o do relatÃ³rio Ã© sÃ³ um artefato informativo; nÃ£o deve derrubar o teste
-            // se o ambiente de execuÃ§Ã£o nÃ£o permitir escrita em disco (ex.: alguns runners de CI).
-            output.WriteLine($"NÃ£o foi possÃ­vel gravar o relatÃ³rio em disco ({ex.Message}). Total de operaÃ§Ãµes: {_results.Count}");
+            output.WriteLine($"Não foi possível gravar o relatório em disco ({ex.Message}). Total de operações: {_results.Count}");
         }
     }
 }

@@ -1,5 +1,7 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Implementations;
@@ -19,6 +21,50 @@ public class AulaServiceTests(TestFixture fixture)
 
     private AulaService CreateService() =>
         new(_aulaRepoMock.Object, _moduloRepoMock.Object, _conteudoRepoMock.Object, _loggerMock.Object);
+
+    [Fact]
+    public void Search_ComFiltro_DeveRetornarPaginaEnriquecidaComConteudo()
+    {
+        // Arrange
+        var service = CreateService();
+        var moduloId = Guid.NewGuid();
+        var aula = fixture.CriarAulaValida(moduloId);
+        var conteudo = new ConteudoAulaResponse("m1", aula.Id, "ARTIGO", "# Markdown", [], DateTime.UtcNow);
+
+        _aulaRepoMock.Setup(r => r.GetPaged(It.IsAny<Expression<Func<Aula, bool>>?>(), "Nome", false, 1, 10))
+            .Returns(new PagedResult<Aula>([aula], 1));
+        _conteudoRepoMock.Setup(r => r.GetByAulaIdsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, ConteudoAulaResponse> { [aula.Id] = conteudo });
+
+        // Act
+        var resultado = service.Search(new PageQuery(), new AulaFilter { ModuloId = moduloId });
+
+        // Assert
+        Assert.Single(resultado.Items);
+        Assert.Equal("# Markdown", resultado.Items[0].Conteudo);
+        Assert.Equal(1, resultado.TotalCount);
+    }
+
+    [Fact]
+    public void ConcluirEDesmarcar_AulaExistente_DeveAlternarFlagEPersistir()
+    {
+        // Arrange
+        var service = CreateService();
+        var aula = fixture.CriarAulaValida();
+        _aulaRepoMock.Setup(r => r.GetById(aula.Id)).Returns(aula);
+        _aulaRepoMock.Setup(r => r.Update(aula)).Returns(aula);
+
+        // Act
+        var concluida = service.Concluir(aula.Id);
+        var desmarcada = service.Desmarcar(aula.Id);
+
+        // Assert
+        Assert.NotNull(concluida);
+        Assert.True(concluida.Concluida);
+        Assert.NotNull(desmarcada);
+        Assert.False(desmarcada.Concluida);
+        _aulaRepoMock.Verify(r => r.Update(aula), Times.Exactly(2));
+    }
 
     [Fact]
     public void Create_ModuloValido_DeveCriarAula()

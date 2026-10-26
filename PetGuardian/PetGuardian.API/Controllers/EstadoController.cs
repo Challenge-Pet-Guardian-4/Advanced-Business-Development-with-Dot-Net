@@ -8,7 +8,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class EstadoController(IEstadoService estadoService, ILogger<EstadoController> logger) : ControllerBase
+public class EstadoController(IEstadoService estadoService, ILogger<EstadoController> logger) : ApiControllerBase
 {
     /// <summary>Lista todos os estados.</summary>
     [HttpGet]
@@ -16,7 +16,7 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/estado: Listando todos os estados.");
-        return Ok(estadoService.GetAll());
+        return Ok(estadoService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém um estado pelo Id.</summary>
@@ -32,7 +32,7 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
             logger.LogWarning("HTTP GET /api/estado/{Id}: Estado não encontrado.", id);
             return NotFound();
         }
-        return Ok(estado);
+        return Ok(ComLinks(estado));
     }
 
     /// <summary>Cria um estado.</summary>
@@ -44,7 +44,7 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
         logger.LogInformation("HTTP POST /api/estado: Cadastrando estado '{Nome}'.", request.NomeEstado);
         var created = estadoService.Create(request);
         logger.LogInformation("HTTP POST /api/estado: Estado {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza um estado existente.</summary>
@@ -62,7 +62,7 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/estado/{Id}: Estado atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove um estado pelo Id.</summary>
@@ -80,4 +80,15 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
         logger.LogInformation("HTTP DELETE /api/estado/{Id}: Estado excluído com sucesso.", id);
         return NoContent();
     }
+
+    private EstadoResponse ComLinks(EstadoResponse e) => e with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = e.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = e.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = e.Id }),
+            LinkTo("cidades", "GET", "GetByEstado", new { estadoId = e.Id }, "Cidade")
+        ]
+    };
 }

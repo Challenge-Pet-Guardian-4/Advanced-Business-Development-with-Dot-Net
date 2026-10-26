@@ -1,10 +1,11 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.Common;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
 public interface IHistoricoService
 {
-    IReadOnlyList<HistoricoResponse> GetAll();
+    PagedResponse<HistoricoResponse> Search(PageQuery query, HistoricoFilter filter);
     HistoricoResponse? GetById(Guid id);
     IReadOnlyList<HistoricoResponse> GetByPetId(Guid petId);
     HistoricoResponse Create(HistoricoRequest request);

@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PetGuardian.API.Security;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
 
@@ -8,15 +11,29 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class AulaController(IAulaService aulaService, ILogger<AulaController> logger) : ControllerBase
+public class AulaController(IAulaService aulaService, ILogger<AulaController> logger) : ApiControllerBase
 {
-    /// <summary>Lista todas as aulas cadastradas.</summary>
+    /// <summary>Lista aulas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
+    /// <remarks>Exemplo: <c>/api/aula?page=1&amp;pageSize=10&amp;sortBy=PontosAula&amp;sortDir=desc&amp;concluida=false&amp;dificuldade=Facil</c></remarks>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AulaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<AulaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] AulaFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/aula: Listando todas as aulas.");
-        return Ok(aulaService.GetAll());
+        logger.LogInformation("HTTP GET /api/aula: pesquisando aulas (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
+        var resultado = aulaService.Search(query, filter);
+
+        return Ok(Paginar(resultado, nameof(GetAll), numero => new
+        {
+            page = numero,
+            pageSize = resultado.PageSize,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
+            nome = filter.Nome,
+            moduloId = filter.ModuloId,
+            dificuldade = filter.Dificuldade,
+            concluida = filter.Concluida
+        }, ComLinks));
     }
 
     /// <summary>Obtém uma aula pelo Id.</summary>
@@ -32,7 +49,7 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
             logger.LogWarning("HTTP GET /api/aula/{Id}: Aula não encontrada.", id);
             return NotFound();
         }
-        return Ok(aula);
+        return Ok(ComLinks(aula));
     }
 
     /// <summary>Lista aulas de um módulo.</summary>
@@ -41,25 +58,29 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
     public IActionResult GetByModulo(Guid moduloId)
     {
         logger.LogInformation("HTTP GET /api/aula/by-modulo/{ModuloId}: Buscando aulas do módulo.", moduloId);
-        return Ok(aulaService.GetByModuloId(moduloId));
+        return Ok(aulaService.GetByModuloId(moduloId).Select(ComLinks).ToList());
     }
 
-    /// <summary>Cadastra uma nova aula na base de dados.</summary>
+    /// <summary>Cadastra uma nova aula na base de dados (somente Admin).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost]
     [ProducesResponseType(typeof(AulaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult Create([FromBody] AulaRequest request)
     {
         logger.LogInformation("HTTP POST /api/aula: Cadastrando aula '{Nome}' para Módulo {ModuloId}.", request.Nome, request.ModuloId);
         var created = aulaService.Create(request);
         logger.LogInformation("HTTP POST /api/aula: Aula {Id} cadastrada com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
-    /// <summary>Atualiza uma aula existente (o módulo vinculado não é reatribuível por aqui).</summary>
+    /// <summary>Atualiza uma aula existente (somente Admin; o módulo vinculado não é reatribuível por aqui).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(AulaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(Guid id, [FromBody] AulaUpdateRequest request)
     {
@@ -71,12 +92,38 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/aula/{Id}: Aula atualizada com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
-    /// <summary>Remove uma aula pelo Id.</summary>
+    /// <summary>Marca a aula como concluída.</summary>
+    [HttpPatch("{id:guid}/concluir")]
+    [ProducesResponseType(typeof(AulaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult Concluir(Guid id)
+    {
+        logger.LogInformation("HTTP PATCH /api/aula/{Id}/concluir: Concluindo aula.", id);
+        var aula = aulaService.Concluir(id);
+        return aula is null ? NotFound() : Ok(ComLinks(aula));
+    }
+
+    /// <summary>Desfaz a conclusão da aula.</summary>
+    [HttpPatch("{id:guid}/desmarcar")]
+    [ProducesResponseType(typeof(AulaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult Desmarcar(Guid id)
+    {
+        logger.LogInformation("HTTP PATCH /api/aula/{Id}/desmarcar: Desmarcando aula.", id);
+        var aula = aulaService.Desmarcar(id);
+        return aula is null ? NotFound() : Ok(ComLinks(aula));
+    }
+
+    /// <summary>Remove uma aula pelo Id (somente Admin).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -89,4 +136,18 @@ public class AulaController(IAulaService aulaService, ILogger<AulaController> lo
         logger.LogInformation("HTTP DELETE /api/aula/{Id}: Aula excluída com sucesso.", id);
         return NoContent();
     }
+
+    private AulaResponse ComLinks(AulaResponse a) => a with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = a.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = a.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = a.Id }),
+            LinkTo(a.Concluida ? "desmarcar" : "concluir", "PATCH",
+                a.Concluida ? nameof(Desmarcar) : nameof(Concluir), new { id = a.Id }),
+            LinkTo("modulo", "GET", "GetById", new { id = a.ModuloId }, "Modulo"),
+            LinkTo("conteudo", "GET", "GetByAulaId", new { aulaId = a.Id }, "ConteudoAula")
+        ]
+    };
 }

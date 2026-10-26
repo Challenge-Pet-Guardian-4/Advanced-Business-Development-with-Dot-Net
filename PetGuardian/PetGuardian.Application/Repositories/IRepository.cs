@@ -27,12 +27,6 @@ public interface IRepository<T> where T : BaseEntity
     bool ExistsById(Guid id);
 
     bool Exists(Expression<Func<T, bool>> predicate);
-
-    /// <summary>
-    /// Verifica existência pelo campo <c>Nome</c>. Lança <see cref="InvalidOperationException"/>
-    /// se a entidade não possuir essa propriedade mapeada.
-    /// </summary>
-    bool ExistsByNome(string valor);
     
     /// <summary>
     /// Consulta paginada com filtro e ordenação executados no banco (Skip/Take).

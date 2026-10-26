@@ -1,11 +1,11 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.Common;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
-/// <summary>GetByVeterinarioId removido; adicionado Update.</summary>
 public interface ITarefaService
 {
-    IReadOnlyList<TarefaResponse> GetAll();
+    PagedResponse<TarefaResponse> Search(PageQuery query, TarefaFilter filter);
     TarefaResponse? GetById(Guid id);
     IReadOnlyList<TarefaResponse> GetByPetId(Guid petId);
     IReadOnlyList<TarefaResponse> GetByUsuarioId(Guid usuarioId);

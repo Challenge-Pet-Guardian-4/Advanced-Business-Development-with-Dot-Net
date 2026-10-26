@@ -36,12 +36,20 @@ public sealed class Aula : BaseEntity
         Concluida = concluida;
     }
 
-    /// <summary>Marca a aula como concluída (idempotente para trás: não permite "desconcluir" por aqui).</summary>
+    /// <summary>Marca a aula como concluída.</summary>
     public void Concluir()
     {
         if (Concluida)
             throw new DomainException("Esta aula já foi concluída.");
         Concluida = true;
+    }
+
+    /// <summary>Desfaz a conclusão da aula.</summary>
+    public void Desmarcar()
+    {
+        if (!Concluida)
+            throw new DomainException("Esta aula não está concluída.");
+        Concluida = false;
     }
 
     private static (string Nome, string Descricao, int PontosAula, string Dificuldade) Validar(

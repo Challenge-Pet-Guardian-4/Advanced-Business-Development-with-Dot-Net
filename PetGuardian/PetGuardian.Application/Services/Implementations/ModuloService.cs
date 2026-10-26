@@ -1,7 +1,10 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
+using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
@@ -13,10 +16,18 @@ public sealed class ModuloService(
     ITrilhaRepository        trilhaRepository,
     ILogger<ModuloService>   logger) : IModuloService
 {
-    public IReadOnlyList<ModuloResponse> GetAll()
+    public PagedResponse<ModuloResponse> Search(PageQuery query, ModuloFilter filter)
     {
-        logger.LogInformation("Buscando todos os módulos cadastrados.");
-        return moduloRepository.GetAll().Select(ModuloResponse.FromDomain).ToList();
+        var q = query.Normalized();
+        logger.LogInformation("Pesquisando módulos: página {Page}, tamanho {PageSize}.", q.Page, q.PageSize);
+
+        var nome = filter.Nome?.Trim().ToLowerInvariant();
+        Expression<Func<Modulo, bool>> predicate = m =>
+            (nome == null || m.Nome.ToLower().Contains(nome))
+            && (filter.TrilhaId == null || m.TrilhaId == filter.TrilhaId);
+
+        var resultado = moduloRepository.GetPaged(predicate, q.SortBy ?? nameof(Modulo.Nome), q.Descending, q.Page, q.PageSize);
+        return PagedResponse<ModuloResponse>.Create(resultado.Map(ModuloResponse.FromDomain), q);
     }
 
     public ModuloResponse? GetById(Guid id)

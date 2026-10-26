@@ -1,7 +1,10 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
+using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
@@ -13,10 +16,22 @@ public sealed class HistoricoService(
     IPetRepository              petRepository,
     ILogger<HistoricoService>   logger) : IHistoricoService
 {
-    public IReadOnlyList<HistoricoResponse> GetAll()
+    public PagedResponse<HistoricoResponse> Search(PageQuery query, HistoricoFilter filter)
     {
-        logger.LogInformation("Buscando todos os registros históricos.");
-        return historicoRepository.GetAll().Select(HistoricoResponse.FromDomain).ToList();
+        using var activity = PetGuardianActivitySource.Source.StartActivity("HistoricoService.Search");
+        var q = query.Normalized();
+        logger.LogInformation("Pesquisando históricos: página {Page}, tamanho {PageSize}, ordenação {SortBy} {SortDir}.",
+            q.Page, q.PageSize, q.SortBy ?? nameof(Historico.DataHist), q.SortDir);
+
+        var tipo = filter.TipoHist?.Trim().ToLowerInvariant();
+        Expression<Func<Historico, bool>> predicate = h =>
+            (tipo == null || h.TipoHist.ToLower().Contains(tipo))
+            && (filter.PetId == null || h.PetId == filter.PetId)
+            && (filter.DataDe == null || h.DataHist >= filter.DataDe)
+            && (filter.DataAte == null || h.DataHist <= filter.DataAte);
+
+        var resultado = historicoRepository.GetPaged(predicate, q.SortBy ?? nameof(Historico.DataHist), q.Descending, q.Page, q.PageSize);
+        return PagedResponse<HistoricoResponse>.Create(resultado.Map(HistoricoResponse.FromDomain), q);
     }
 
     public HistoricoResponse? GetById(Guid id)

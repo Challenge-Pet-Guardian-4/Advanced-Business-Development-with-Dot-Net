@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
@@ -15,12 +17,23 @@ public sealed class AulaService(
     IConteudoAulaRepository conteudoRepository,
     ILogger<AulaService>    logger) : IAulaService
 {
-    public IReadOnlyList<AulaResponse> GetAll()
+    public PagedResponse<AulaResponse> Search(PageQuery query, AulaFilter filter)
     {
-        logger.LogInformation("Buscando todas as aulas cadastradas.");
-        var aulas = aulaRepository.GetAll();
-        var conteudos = BuscarConteudosEmLote(aulas);
-        return aulas.Select(a => AulaResponse.FromDomain(a, conteudos.GetValueOrDefault(a.Id))).ToList();
+        var q = query.Normalized();
+        logger.LogInformation("Pesquisando aulas: página {Page}, tamanho {PageSize}.", q.Page, q.PageSize);
+
+        var nome = filter.Nome?.Trim().ToLowerInvariant();
+        var dificuldade = filter.Dificuldade?.Trim().ToLowerInvariant();
+        Expression<Func<Aula, bool>> predicate = a =>
+            (nome == null || a.Nome.ToLower().Contains(nome))
+            && (filter.ModuloId == null || a.ModuloId == filter.ModuloId)
+            && (dificuldade == null || a.Dificuldade.ToLower() == dificuldade)
+            && (filter.Concluida == null || a.Concluida == filter.Concluida);
+
+        var resultado = aulaRepository.GetPaged(predicate, q.SortBy ?? nameof(Aula.Nome), q.Descending, q.Page, q.PageSize);
+        var conteudos = BuscarConteudosEmLote(resultado.Items.ToList());
+        return PagedResponse<AulaResponse>.Create(
+            resultado.Map(a => AulaResponse.FromDomain(a, conteudos.GetValueOrDefault(a.Id))), q);
     }
 
     public AulaResponse? GetById(Guid id)
@@ -72,6 +85,25 @@ public sealed class AulaService(
         aula.Atualizar(request.Nome, request.Descricao, request.PontosAula, request.Dificuldade, request.Concluida);
         aulaRepository.Update(aula);
         logger.LogInformation("Aula {AulaId} atualizada com sucesso.", id);
+        return AulaResponse.FromDomain(aula, BuscarConteudoMarkdown(id));
+    }
+
+    public AulaResponse? Concluir(Guid id) => AlterarConclusao(id, a => a.Concluir(), "conclusão");
+
+    public AulaResponse? Desmarcar(Guid id) => AlterarConclusao(id, a => a.Desmarcar(), "desmarcação");
+
+    private AulaResponse? AlterarConclusao(Guid id, Action<Aula> acao, string operacao)
+    {
+        logger.LogInformation("Iniciando {Operacao} da aula: {AulaId}", operacao, id);
+        var aula = aulaRepository.GetById(id);
+        if (aula is null)
+        {
+            logger.LogWarning("Aula inexistente para {Operacao}: {AulaId}", operacao, id);
+            return null;
+        }
+
+        acao(aula);
+        aulaRepository.Update(aula);
         return AulaResponse.FromDomain(aula, BuscarConteudoMarkdown(id));
     }
 

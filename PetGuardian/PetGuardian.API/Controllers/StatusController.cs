@@ -8,7 +8,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class StatusController(IStatusService statusService, ILogger<StatusController> logger) : ControllerBase
+public class StatusController(IStatusService statusService, ILogger<StatusController> logger) : ApiControllerBase
 {
     /// <summary>Lista todos os registros de status cadastrados.</summary>
     [HttpGet]
@@ -16,7 +16,7 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/status: Listando todos os status.");
-        return Ok(statusService.GetAll());
+        return Ok(statusService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém um registro de status pelo seu identificador único (ID).</summary>
@@ -32,7 +32,7 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
             logger.LogWarning("HTTP GET /api/status/{Id}: Status não encontrado.", id);
             return NotFound();
         }
-        return Ok(status);
+        return Ok(ComLinks(status));
     }
 
     /// <summary>Cadastra um novo registro de status na base de dados.</summary>
@@ -44,7 +44,7 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
         logger.LogInformation("HTTP POST /api/status: Cadastrando status '{Nome}'.", request.NomeStatus);
         var created = statusService.Create(request);
         logger.LogInformation("HTTP POST /api/status: Status {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza um status existente.</summary>
@@ -62,7 +62,7 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/status/{Id}: Status atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Exclui um registro de status cadastrado pelo seu ID.</summary>
@@ -80,4 +80,15 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
         logger.LogInformation("HTTP DELETE /api/status/{Id}: Status excluído com sucesso.", id);
         return NoContent();
     }
+
+    private StatusResponse ComLinks(StatusResponse s) => s with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = s.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = s.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = s.Id }),
+            LinkTo("tarefas", "GET", "GetByStatus", new { statusId = s.Id }, "Tarefa")
+        ]
+    };
 }

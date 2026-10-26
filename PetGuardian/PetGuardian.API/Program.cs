@@ -1,4 +1,5 @@
 using System.Reflection;
+using dotenv.net;
 using Microsoft.OpenApi;
 using PetGuardian.API.Exceptions;
 using PetGuardian.API.Extensions;
@@ -11,7 +12,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        LoadDotEnv();
+        DotEnv.Load(options: new DotEnvOptions(probeForEnv: true, probeLevelsToSearch: 6));
 
         var builder = WebApplication.CreateBuilder(args);
 
@@ -39,8 +40,8 @@ public class Program
 
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
         builder.Services.AddControllers(options =>
-            // tabelas de referência: leitura para qualquer autenticado, escrita só Admin
-            options.Conventions.Add(new RequireAdminForWritesConvention("Estado", "Cidade", "Bairro", "Raca", "Status")));
+            // tabelas de referência e trilhas: leitura para qualquer autenticado, escrita só Admin
+            options.Conventions.Add(new RequireAdminForWritesConvention("Estado", "Cidade", "Bairro", "Raca", "Status", "Trilha", "Modulo")));
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -79,10 +80,7 @@ public class Program
                 In = ParameterLocation.Header,
                 Description = "Informe o token JWT no formato: Bearer {token}"
             });
-            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-            {
-                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-            });
+            options.OperationFilter<BearerSecurityOperationFilter>();
         });
 
         var app = builder.Build();
@@ -106,18 +104,5 @@ public class Program
 
         app.MapControllers();
         app.Run();
-    }
-
-    private static void LoadDotEnv()
-    {
-        var path = new[] { ".env", "PetGuardian.API/.env", "../PetGuardian.API/.env", "PetGuardian/PetGuardian.API/.env" }.FirstOrDefault(File.Exists);
-        if (path == null) return;
-
-        foreach (var line in File.ReadAllLines(path))
-        {
-            var parts = line.Split('=', 2);
-            if (parts.Length == 2 && !parts[0].TrimStart().StartsWith('#'))
-                Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim().Trim('"', '\''));
-        }
     }
 }

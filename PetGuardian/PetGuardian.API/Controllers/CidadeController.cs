@@ -8,7 +8,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class CidadeController(ICidadeService cidadeService, ILogger<CidadeController> logger) : ControllerBase
+public class CidadeController(ICidadeService cidadeService, ILogger<CidadeController> logger) : ApiControllerBase
 {
     /// <summary>Lista todas as cidades.</summary>
     [HttpGet]
@@ -16,7 +16,7 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/cidade: Listando todas as cidades.");
-        return Ok(cidadeService.GetAll());
+        return Ok(cidadeService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém uma cidade pelo Id.</summary>
@@ -32,7 +32,7 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
             logger.LogWarning("HTTP GET /api/cidade/{Id}: Cidade não encontrada.", id);
             return NotFound();
         }
-        return Ok(cidade);
+        return Ok(ComLinks(cidade));
     }
 
     /// <summary>Lista cidades de um estado.</summary>
@@ -41,7 +41,7 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
     public IActionResult GetByEstado(Guid estadoId)
     {
         logger.LogInformation("HTTP GET /api/cidade/by-estado/{EstadoId}: Buscando cidades por estado.", estadoId);
-        return Ok(cidadeService.GetByEstadoId(estadoId));
+        return Ok(cidadeService.GetByEstadoId(estadoId).Select(ComLinks).ToList());
     }
 
     /// <summary>Cria uma cidade.</summary>
@@ -53,7 +53,7 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
         logger.LogInformation("HTTP POST /api/cidade: Cadastrando cidade '{Nome}' no Estado {EstadoId}.", request.NomeCidade, request.EstadoId);
         var created = cidadeService.Create(request);
         logger.LogInformation("HTTP POST /api/cidade: Cidade {Id} cadastrada com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza uma cidade existente.</summary>
@@ -71,7 +71,7 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/cidade/{Id}: Cidade atualizada com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove uma cidade pelo Id.</summary>
@@ -89,4 +89,16 @@ public class CidadeController(ICidadeService cidadeService, ILogger<CidadeContro
         logger.LogInformation("HTTP DELETE /api/cidade/{Id}: Cidade excluída com sucesso.", id);
         return NoContent();
     }
+
+    private CidadeResponse ComLinks(CidadeResponse c) => c with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = c.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = c.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = c.Id }),
+            LinkTo("estado", "GET", "GetById", new { id = c.EstadoId }, "Estado"),
+            LinkTo("bairros", "GET", "GetByCidade", new { cidadeId = c.Id }, "Bairro")
+        ]
+    };
 }

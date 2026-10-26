@@ -1,10 +1,11 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.Common;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
 public interface IModuloService
 {
-    IReadOnlyList<ModuloResponse> GetAll();
+    PagedResponse<ModuloResponse> Search(PageQuery query, ModuloFilter filter);
     ModuloResponse? GetById(Guid id);
     IReadOnlyList<ModuloResponse> GetByTrilhaId(Guid trilhaId);
     ModuloResponse Create(ModuloRequest request);

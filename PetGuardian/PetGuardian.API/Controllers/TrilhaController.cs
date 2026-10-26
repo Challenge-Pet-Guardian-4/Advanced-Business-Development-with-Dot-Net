@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PetGuardian.API.Security;
+using PetGuardian.Application.Common;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Services.Interfaces;
 
@@ -8,15 +11,27 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaController> logger) : ControllerBase
+public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaController> logger) : ApiControllerBase
 {
-    /// <summary>Lista todas as trilhas cadastradas.</summary>
+    /// <summary>Lista trilhas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
+    /// <remarks>Exemplo: <c>/api/trilha?page=1&amp;pageSize=10&amp;sortBy=Nome&amp;sortDir=desc&amp;nome=adest</c></remarks>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<TrilhaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<TrilhaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] TrilhaFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/trilha: Listando todas as trilhas.");
-        return Ok(trilhaService.GetAll());
+        logger.LogInformation("HTTP GET /api/trilha: pesquisando trilhas (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
+        var resultado = trilhaService.Search(query, filter);
+
+        return Ok(Paginar(resultado, nameof(GetAll), numero => new
+        {
+            page = numero,
+            pageSize = resultado.PageSize,
+            sortBy = query.SortBy,
+            sortDir = query.SortDir,
+            nome = filter.Nome,
+            petId = filter.PetId
+        }, ComLinks));
     }
 
     /// <summary>Obtém uma trilha pelo Id.</summary>
@@ -32,7 +47,7 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
             logger.LogWarning("HTTP GET /api/trilha/{Id}: Trilha não encontrada.", id);
             return NotFound();
         }
-        return Ok(trilha);
+        return Ok(ComLinks(trilha));
     }
 
     /// <summary>Lista trilhas de um pet.</summary>
@@ -41,25 +56,29 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
     public IActionResult GetByPet(Guid petId)
     {
         logger.LogInformation("HTTP GET /api/trilha/by-pet/{PetId}: Buscando trilhas do pet.", petId);
-        return Ok(trilhaService.GetByPetId(petId));
+        return Ok(trilhaService.GetByPetId(petId).Select(ComLinks).ToList());
     }
 
-    /// <summary>Cadastra uma nova trilha na base de dados.</summary>
+    /// <summary>Cadastra uma nova trilha na base de dados (somente Admin).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost]
     [ProducesResponseType(typeof(TrilhaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult Create([FromBody] TrilhaRequest request)
     {
         logger.LogInformation("HTTP POST /api/trilha: Cadastrando trilha '{Nome}' para Pet {PetId}.", request.Nome, request.PetId);
         var created = trilhaService.Create(request);
         logger.LogInformation("HTTP POST /api/trilha: Trilha {Id} cadastrada com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
-    /// <summary>Atualiza uma trilha existente (o pet vinculado não é reatribuível por aqui).</summary>
+    /// <summary>Atualiza uma trilha existente (somente Admin; o pet vinculado não é reatribuível por aqui).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TrilhaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(Guid id, [FromBody] TrilhaUpdateRequest request)
     {
@@ -71,12 +90,14 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/trilha/{Id}: Trilha atualizada com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
-    /// <summary>Remove uma trilha pelo Id.</summary>
+    /// <summary>Remove uma trilha pelo Id (somente Admin).</summary>
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
@@ -89,4 +110,16 @@ public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaContro
         logger.LogInformation("HTTP DELETE /api/trilha/{Id}: Trilha excluída com sucesso.", id);
         return NoContent();
     }
+
+    private TrilhaResponse ComLinks(TrilhaResponse t) => t with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = t.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = t.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = t.Id }),
+            LinkTo("modulos", "GET", "GetByTrilha", new { trilhaId = t.Id }, "Modulo"),
+            LinkTo("pet", "GET", "GetById", new { id = t.PetId }, "Pet")
+        ]
+    };
 }

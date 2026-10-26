@@ -1,10 +1,11 @@
-﻿using PetGuardian.Application.DTOs;
+using PetGuardian.Application.Common;
+using PetGuardian.Application.DTOs;
 
 namespace PetGuardian.Application.Services.Interfaces;
 
 public interface IUsuarioService
 {
-    IReadOnlyList<UsuarioResponse> GetAll();
+    PagedResponse<UsuarioResponse> Search(PageQuery query, UsuarioFilter filter);
     UsuarioResponse? GetById(Guid id);
     UsuarioResponse? GetByEmail(string email);
     UsuarioScoreResponse GetScore(Guid usuarioId);

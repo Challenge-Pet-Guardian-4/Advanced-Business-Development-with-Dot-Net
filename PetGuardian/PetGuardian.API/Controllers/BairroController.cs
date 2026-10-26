@@ -8,7 +8,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class BairroController(IBairroService bairroService, ILogger<BairroController> logger) : ControllerBase
+public class BairroController(IBairroService bairroService, ILogger<BairroController> logger) : ApiControllerBase
 {
     /// <summary>Lista todos os bairros.</summary>
     [HttpGet]
@@ -16,7 +16,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/bairro: Listando todos os bairros.");
-        return Ok(bairroService.GetAll());
+        return Ok(bairroService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Obtém um bairro pelo Id.</summary>
@@ -32,7 +32,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
             logger.LogWarning("HTTP GET /api/bairro/{Id}: Bairro não encontrado.", id);
             return NotFound();
         }
-        return Ok(bairro);
+        return Ok(ComLinks(bairro));
     }
 
     /// <summary>Lista bairros de uma cidade.</summary>
@@ -41,7 +41,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     public IActionResult GetByCidade(Guid cidadeId)
     {
         logger.LogInformation("HTTP GET /api/bairro/by-cidade/{CidadeId}: Buscando bairros por cidade.", cidadeId);
-        return Ok(bairroService.GetByCidadeId(cidadeId));
+        return Ok(bairroService.GetByCidadeId(cidadeId).Select(ComLinks).ToList());
     }
 
     /// <summary>Cria um bairro.</summary>
@@ -53,7 +53,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
         logger.LogInformation("HTTP POST /api/bairro: Cadastrando bairro '{Nome}' na Cidade {CidadeId}.", request.NomeBairro, request.CidadeId);
         var created = bairroService.Create(request);
         logger.LogInformation("HTTP POST /api/bairro: Bairro {Id} cadastrado com sucesso.", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
     /// <summary>Atualiza um bairro existente.</summary>
@@ -71,7 +71,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
             return NotFound();
         }
         logger.LogInformation("HTTP PUT /api/bairro/{Id}: Bairro atualizado com sucesso.", id);
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove um bairro pelo Id.</summary>
@@ -89,4 +89,15 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
         logger.LogInformation("HTTP DELETE /api/bairro/{Id}: Bairro excluído com sucesso.", id);
         return NoContent();
     }
+
+    private BairroResponse ComLinks(BairroResponse b) => b with
+    {
+        Links =
+        [
+            LinkTo("self", "GET", nameof(GetById), new { id = b.Id }),
+            LinkTo("update", "PUT", nameof(Update), new { id = b.Id }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { id = b.Id }),
+            LinkTo("cidade", "GET", "GetById", new { id = b.CidadeId }, "Cidade")
+        ]
+    };
 }

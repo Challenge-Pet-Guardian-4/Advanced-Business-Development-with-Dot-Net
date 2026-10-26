@@ -16,7 +16,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult GetAll()
     {
         logger.LogInformation("HTTP GET /api/usuariopet: Listando todos os vínculos de rede de cuidado.");
-        return Ok(usuarioPetService.GetAll());
+        return Ok(usuarioPetService.GetAll().Select(ComLinks).ToList());
     }
 
     /// <summary>Vínculos de um usuário.</summary>
@@ -25,7 +25,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult GetByUsuario(Guid usuarioId)
     {
         logger.LogInformation("HTTP GET /api/usuariopet/by-usuario/{UsuarioId}: Buscando vínculos por usuário.", usuarioId);
-        return Ok(usuarioPetService.GetByUsuarioId(usuarioId));
+        return Ok(usuarioPetService.GetByUsuarioId(usuarioId).Select(ComLinks).ToList());
     }
 
     /// <summary>Vínculos de um pet.</summary>
@@ -34,7 +34,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult GetByPet(Guid petId)
     {
         logger.LogInformation("HTTP GET /api/usuariopet/by-pet/{PetId}: Buscando vínculos por pet.", petId);
-        return Ok(usuarioPetService.GetByPetId(petId));
+        return Ok(usuarioPetService.GetByPetId(petId).Select(ComLinks).ToList());
     }
 
     /// <summary>Rede de cuidado colaborativo (co-cuidadores e pets) de um usuário.</summary>
@@ -58,7 +58,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
 
         logger.LogInformation("HTTP POST /api/usuariopet: Vinculando Usuário {UsuarioId} ao Pet {PetId}.", request.UsuarioId, request.PetId);
         var created = usuarioPetService.Create(request);
-        return CreatedAtAction(nameof(GetByUsuario), new { usuarioId = created.UsuarioId }, created);
+        return CreatedAtAction(nameof(GetByUsuario), new { usuarioId = created.UsuarioId }, ComLinks(created));
     }
 
     /// <summary>Convite por ID (exclusivo do responsável principal; AdminUsuarioId deve ser o usuário do token).</summary>
@@ -73,7 +73,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
 
         logger.LogInformation("HTTP POST /api/usuariopet/invite/by-usuario: Convite do Admin {AdminId} para Usuário {ConvidadoId} no Pet {PetId}.", request.AdminUsuarioId, request.UsuarioConvidadoId, request.PetId);
         var created = usuarioPetService.InviteByUsuario(request);
-        return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, created);
+        return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, ComLinks(created));
     }
 
     /// <summary>Convite por e-mail (exclusivo do responsável principal; AdminUsuarioId deve ser o usuário do token).</summary>
@@ -88,7 +88,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
 
         logger.LogInformation("HTTP POST /api/usuariopet/invite/by-email: Convite do Admin {AdminId} para E-mail {Email} no Pet {PetId}.", request.AdminUsuarioId, request.Email, request.PetId);
         var created = usuarioPetService.InviteByEmail(request);
-        return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, created);
+        return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, ComLinks(created));
     }
 
     /// <summary>Alterna se este usuário é o responsável principal do pet.</summary>
@@ -105,7 +105,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
             logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Vínculo não encontrado para atualização.", usuarioId, petId);
             return NotFound();
         }
-        return Ok(updated);
+        return Ok(ComLinks(updated));
     }
 
     /// <summary>Remove um vínculo pela chave composta (usuarioId + petId).</summary>
@@ -122,4 +122,18 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         }
         return NoContent();
     }
+
+    private UsuarioPetResponse ComLinks(UsuarioPetResponse up) => up with
+    {
+        Links =
+        [
+            LinkTo("usuario-vinculos", "GET", nameof(GetByUsuario), new { usuarioId = up.UsuarioId }),
+            LinkTo("pet-vinculos", "GET", nameof(GetByPet), new { petId = up.PetId }),
+            LinkTo("rede-cuidado", "GET", nameof(GetRedeCuidado), new { usuarioId = up.UsuarioId }),
+            LinkTo("update", "PUT", nameof(Update), new { usuarioId = up.UsuarioId, petId = up.PetId }),
+            LinkTo("delete", "DELETE", nameof(Delete), new { usuarioId = up.UsuarioId, petId = up.PetId }),
+            LinkTo("usuario", "GET", "GetById", new { id = up.UsuarioId }, "Usuario"),
+            LinkTo("pet", "GET", "GetById", new { id = up.PetId }, "Pet")
+        ]
+    };
 }

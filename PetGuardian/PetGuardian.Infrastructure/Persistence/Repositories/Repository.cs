@@ -17,9 +17,6 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
 
     private readonly DbSet<T> _set = context.Set<T>();
 
-    // Nome da propriedade de denominação principal usada em todas as entidades do projeto.
-    private const string PropriedadeNome = "Nome";
-
     /// <inheritdoc />
     public IReadOnlyList<T> GetAll()
     {
@@ -100,16 +97,6 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
         return _set.Any(predicate);
     }
 
-    /// <inheritdoc />
-    public bool ExistsByNome(string valor)
-    {
-        if (string.IsNullOrWhiteSpace(valor))
-            return false;
-
-        var normalizado = valor.Trim().ToLowerInvariant();
-        return _set.Any(e => EF.Property<string>(e, PropriedadeNome).ToLower() == normalizado);
-    }
-    
     // Campos que nunca podem ser usados em ordenação (evita vazar informação de hash/salt).
     private static readonly HashSet<string> CamposNaoOrdenaveis = new(StringComparer.OrdinalIgnoreCase)
     {
