@@ -73,21 +73,16 @@ public class AuthControllerIntegrationTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task LoginMobile_RotaAlternativa_DeveRetornar200EToken()
+    public async Task Login_ComEmailInvalido_DeveRetornar400BadRequest()
     {
         // Arrange
-        var (email, senha, _) = await CriarUsuarioTesteAsync();
-        var loginRequest = new LoginRequest(email, senha);
+        var loginRequest = new LoginRequest("formato-invalido-de-email", "senha123");
 
         // Act
-        var response = await _client.PostAsJsonAsync("/login", loginRequest);
+        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(loginResponse);
-        Assert.False(string.IsNullOrWhiteSpace(loginResponse.Token));
-        Assert.Equal(email, loginResponse.User.Email);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -104,25 +99,29 @@ public class AuthControllerIntegrationTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task Me_ComTokenJwtValido_DeveRetornar200EUsuarioAutenticado()
+    public async Task Me_ComTokenValido_DeveRetornar200EPerfilComLinks()
     {
         // Arrange
-        var (email, senha, _) = await CriarUsuarioTesteAsync();
-        var loginPost = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, senha));
-        var loginResult = await loginPost.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.NotNull(loginResult);
+        var (email, senha, id) = await CriarUsuarioTesteAsync();
+        var loginRes = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, senha));
+        var loginData = await loginRes.Content.ReadFromJsonAsync<LoginResponse>();
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginResult.Token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData!.Token);
 
         // Act
         var response = await _client.SendAsync(request);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var usuarioMe = await response.Content.ReadFromJsonAsync<UsuarioResponse>();
-        Assert.NotNull(usuarioMe);
-        Assert.Equal(email, usuarioMe.Email);
+        var perfil = await response.Content.ReadFromJsonAsync<UsuarioResponse>();
+        Assert.NotNull(perfil);
+        Assert.Equal(id, perfil.Id);
+        Assert.Equal(email, perfil.Email);
+        Assert.NotNull(perfil.Links);
+        Assert.Contains(perfil.Links, l => l.Rel == "self");
+        Assert.Contains(perfil.Links, l => l.Rel == "update");
+        Assert.Contains(perfil.Links, l => l.Rel == "delete");
     }
 
     [Fact]
@@ -130,7 +129,7 @@ public class AuthControllerIntegrationTests(CustomWebApplicationFactory factory)
     {
         // Arrange
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "token_completamente_falso_invalido");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "token-invalido-aleatorio");
 
         // Act
         var response = await _client.SendAsync(request);

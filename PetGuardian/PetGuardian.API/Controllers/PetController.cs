@@ -16,7 +16,6 @@ public class PetController(
 {
     /// <summary>Lista pets vinculados ao usuário autenticado.</summary>
     [HttpGet("me")]
-    [HttpGet("/pets/me")]
     [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult GetMyPets()

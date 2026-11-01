@@ -18,7 +18,6 @@ public class TrilhaController(
 {
     /// <summary>Lista trilhas dos pets do usuário autenticado.</summary>
     [HttpGet("me")]
-    [HttpGet("/trilhas/me")]
     [ProducesResponseType(typeof(IReadOnlyList<TrilhaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult GetMyTrilhas()

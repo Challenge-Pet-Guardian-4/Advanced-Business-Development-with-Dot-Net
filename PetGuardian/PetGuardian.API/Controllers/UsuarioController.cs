@@ -19,7 +19,6 @@ public class UsuarioController(
 {
     /// <summary>Obtém o perfil do usuário autenticado através do token JWT.</summary>
     [HttpGet("me")]
-    [HttpGet("/usuarios/me")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -32,7 +31,6 @@ public class UsuarioController(
 
     /// <summary>Atualiza o perfil do próprio usuário autenticado.</summary>
     [HttpPut("me")]
-    [HttpPut("/usuarios/me")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -46,7 +44,6 @@ public class UsuarioController(
 
     /// <summary>Rede de cuidado colaborativo do usuário autenticado.</summary>
     [HttpGet("me/rede-cuidado")]
-    [HttpGet("/usuarios/me/rede-cuidado")]
     [ProducesResponseType(typeof(RedeCuidadoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult GetMyRedeCuidado()
@@ -57,7 +54,6 @@ public class UsuarioController(
 
     /// <summary>Atualiza o usuário autenticado para o perfil Premium.</summary>
     [HttpPatch("me/upgrade-premium")]
-    [HttpPatch("/usuarios/me/upgrade-premium")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

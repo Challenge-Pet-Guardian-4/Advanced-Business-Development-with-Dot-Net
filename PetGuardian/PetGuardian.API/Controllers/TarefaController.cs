@@ -16,7 +16,6 @@ public class TarefaController(
 {
     /// <summary>Lista tarefas do usuário autenticado ou de seus pets.</summary>
     [HttpGet("me")]
-    [HttpGet("/tarefas/me")]
     [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult GetMyTarefas([FromQuery] bool? concluida = null)

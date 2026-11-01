@@ -12,11 +12,10 @@ namespace PetGuardian.API.Controllers;
 public class AuthController(IAuthService authService, ILogger<AuthController> logger) : ApiControllerBase
 {
     /// <summary>
-    /// Autentica com e-mail e senha. Suporta /api/auth/login (RESTful) e /login (app Mobile).
+    /// Autentica com e-mail e senha e retorna o token JWT.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("login")]
-    [HttpPost("/login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -26,7 +25,7 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
         if (resposta is null)
             return Unauthorized(new { message = "E-mail ou senha incorretos." });
 
-        logger.LogInformation("HTTP POST /login: usuário {Id} autenticado.", resposta.User.Id);
+        logger.LogInformation("HTTP POST /api/auth/login: usuário {Id} autenticado.", resposta.User.Id);
         return Ok(resposta);
     }
 
