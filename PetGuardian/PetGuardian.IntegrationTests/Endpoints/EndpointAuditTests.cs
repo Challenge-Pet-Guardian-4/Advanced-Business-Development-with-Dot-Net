@@ -173,7 +173,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-pet/{pet.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-usuario/{usuario.Id}", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/by-status/{statusPendente.Id}", HttpStatusCode.OK);
-        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("Vacinação V10 + Raiva", 60, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
+        await ExecutarAsync(HttpMethod.Put, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.OK, JsonContent.Create(new TarefaUpdateRequest("Vacinação V10 + Raiva", 10, "Aplicar ambas as doses", DateTime.UtcNow.AddDays(4))));
         await ExecutarAsync(HttpMethod.Post, $"/api/tarefa/{tarefa.Id}/concluir", HttpStatusCode.OK, JsonContent.Create(new TarefaConcluirRequest(usuario.Id)));
         await ExecutarAsync(HttpMethod.Delete, $"/api/tarefa/{tarefa.Id}", HttpStatusCode.NoContent);
 

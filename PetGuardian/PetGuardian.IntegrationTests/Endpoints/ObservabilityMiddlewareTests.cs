@@ -13,7 +13,7 @@ public class ObservabilityMiddlewareTests(CustomWebApplicationFactory factory)
     public async Task Request_SemHeaderCorrelationId_DeveGerarERetornarCorrelationIdNoHeader()
     {
         // Arrange
-        // (Sem header prÃ©vio no request)
+        // (Sem header prévio no request)
 
         // Act
         var response = await _client.GetAsync("/api/status");
