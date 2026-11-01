@@ -14,13 +14,6 @@ public class TarefaController(
     IUsuarioPetService usuarioPetService,
     ILogger<TarefaController> logger) : ApiControllerBase
 {
-    private bool CanAccessPetCareCircle(Guid petId)
-    {
-        if (IsAdmin) return true;
-        if (CurrentUserId is null) return false;
-        var vinculos = usuarioPetService.GetByPetId(petId);
-        return vinculos.Any(v => v.UsuarioId == CurrentUserId.Value);
-    }
 
     /// <summary>Lista tarefas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/tarefa?petId={id}&amp;concluida=false&amp;sortBy=Prazo&amp;pageSize=5</c></remarks>
@@ -118,7 +111,7 @@ public class TarefaController(
             return NotFound();
         }
 
-        if (!CanAccessPetCareCircle(existing.PetId))
+        if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
         {
             logger.LogWarning("HTTP PUT /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
             return Forbid();
@@ -165,7 +158,7 @@ public class TarefaController(
             return NotFound();
         }
 
-        if (!CanAccessPetCareCircle(existing.PetId))
+        if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
         {
             logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
             return Forbid();

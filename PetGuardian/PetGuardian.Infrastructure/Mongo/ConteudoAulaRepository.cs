@@ -17,8 +17,7 @@ public sealed class ConteudoAulaRepository : IConteudoAulaRepository
 
     public async Task<ConteudoAulaResponse?> GetByAulaIdAsync(Guid aulaId, CancellationToken cancellationToken = default)
     {
-        var filtro = CriarFiltroAulaId(aulaId);
-        var doc = await _colecao.Find(filtro).FirstOrDefaultAsync(cancellationToken);
+        var doc = await _colecao.Find(CriarFiltroAulaId(aulaId)).FirstOrDefaultAsync(cancellationToken);
         if (doc is null) return null;
         var resp = doc.ToResponse();
         return resp.AulaId == Guid.Empty ? resp with { AulaId = aulaId } : resp;
@@ -27,27 +26,9 @@ public sealed class ConteudoAulaRepository : IConteudoAulaRepository
     public async Task<IReadOnlyDictionary<Guid, ConteudoAulaResponse>> GetByAulaIdsAsync(
         IReadOnlyCollection<Guid> aulaIds, CancellationToken cancellationToken = default)
     {
-        if (aulaIds.Count == 0)
-            return new Dictionary<Guid, ConteudoAulaResponse>();
+        if (aulaIds.Count == 0) return new Dictionary<Guid, ConteudoAulaResponse>();
 
-        var chaves = new List<BsonValue>();
-        foreach (var id in aulaIds)
-        {
-            var str = id.ToString();
-            chaves.Add(new BsonString(str));
-            chaves.Add(new BsonString(str.ToLowerInvariant()));
-            chaves.Add(new BsonString(str.ToUpperInvariant()));
-            chaves.Add(new BsonString(id.ToString("N")));
-            chaves.Add(new BsonString(id.ToString("N").ToLowerInvariant()));
-
-            if (TryExtractInt(id, out var intVal))
-            {
-                chaves.Add(new BsonInt32(intVal));
-                chaves.Add(new BsonInt64(intVal));
-                chaves.Add(new BsonString(intVal.ToString(CultureInfo.InvariantCulture)));
-            }
-        }
-
+        var chaves = aulaIds.SelectMany(ObterValoresFiltro).Distinct();
         var docs = await _colecao.Find(Builders<ConteudoAulaDocument>.Filter.In("aula_id", chaves))
             .ToListAsync(cancellationToken);
 
@@ -56,15 +37,13 @@ public sealed class ConteudoAulaRepository : IConteudoAulaRepository
         {
             var resp = doc.ToResponse();
             var matchingId = aulaIds.FirstOrDefault(id =>
-                id == resp.AulaId ||
-                string.Equals(id.ToString(), doc.AulaId, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(id.ToString("N"), doc.AulaId, StringComparison.OrdinalIgnoreCase) ||
-                (TryExtractInt(id, out var n) && (doc.AulaId == n.ToString(CultureInfo.InvariantCulture) || doc.AulaId == id.ToString())));
+                resp.AulaId == id ||
+                doc.AulaId.Equals(id.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                (TryExtractInt(id, out var n) && doc.AulaId == n.ToString(CultureInfo.InvariantCulture)));
 
-            if (matchingId != Guid.Empty)
-                resultado[matchingId] = resp with { AulaId = matchingId };
-            else if (resp.AulaId != Guid.Empty)
-                resultado[resp.AulaId] = resp;
+            var idEfetivo = matchingId != Guid.Empty ? matchingId : resp.AulaId;
+            if (idEfetivo != Guid.Empty)
+                resultado[idEfetivo] = resp with { AulaId = idEfetivo };
         }
 
         return resultado;
@@ -88,10 +67,8 @@ public sealed class ConteudoAulaRepository : IConteudoAulaRepository
             .Set(d => d.LinksRecursos, doc.LinksRecursos)
             .Set(d => d.AtualizadoEm, doc.AtualizadoEm);
 
-        var filtro = CriarFiltroAulaId(aulaId);
-
         var atualizado = await _colecao.FindOneAndUpdateAsync(
-            filtro,
+            CriarFiltroAulaId(aulaId),
             update,
             new FindOneAndUpdateOptions<ConteudoAulaDocument> { ReturnDocument = ReturnDocument.After },
             cancellationToken);
@@ -103,44 +80,28 @@ public sealed class ConteudoAulaRepository : IConteudoAulaRepository
 
     public async Task<bool> ExcluirPorAulaIdAsync(Guid aulaId, CancellationToken cancellationToken = default)
     {
-        var filtro = CriarFiltroAulaId(aulaId);
-        var resultado = await _colecao.DeleteOneAsync(filtro, cancellationToken);
+        var resultado = await _colecao.DeleteOneAsync(CriarFiltroAulaId(aulaId), cancellationToken);
         return resultado.DeletedCount > 0;
     }
 
-    private static FilterDefinition<ConteudoAulaDocument> CriarFiltroAulaId(Guid aulaId)
+    private static FilterDefinition<ConteudoAulaDocument> CriarFiltroAulaId(Guid aulaId) =>
+        Builders<ConteudoAulaDocument>.Filter.In("aula_id", ObterValoresFiltro(aulaId));
+
+    private static IEnumerable<BsonValue> ObterValoresFiltro(Guid id)
     {
-        var chaveString = aulaId.ToString();
-        var chaves = new List<BsonValue>
+        yield return new BsonString(id.ToString());
+        if (TryExtractInt(id, out var n))
         {
-            new BsonString(chaveString),
-            new BsonString(chaveString.ToLowerInvariant()),
-            new BsonString(chaveString.ToUpperInvariant()),
-            new BsonString(aulaId.ToString("N")),
-            new BsonString(aulaId.ToString("N").ToLowerInvariant())
-        };
-
-        if (TryExtractInt(aulaId, out var intVal))
-        {
-            chaves.Add(new BsonInt32(intVal));
-            chaves.Add(new BsonInt64(intVal));
-            chaves.Add(new BsonString(intVal.ToString(CultureInfo.InvariantCulture)));
+            yield return new BsonInt32(n);
+            yield return new BsonInt64(n);
+            yield return new BsonString(n.ToString(CultureInfo.InvariantCulture));
         }
-
-        return Builders<ConteudoAulaDocument>.Filter.In("aula_id", chaves);
     }
 
     private static bool TryExtractInt(Guid guid, out int intVal)
     {
-        var s = guid.ToString("N");
-        // Suporte aos GUIDs sintéticos gerados para IDs numéricos do MongoDB (ex: 00000000000000000000000000000001)
-        var trimmed = s.TrimStart('0');
-        if (trimmed.Length > 0 && trimmed.Length <= 8 && int.TryParse(trimmed, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out intVal))
-        {
-            return true;
-        }
-
         intVal = 0;
-        return false;
+        var s = guid.ToString("N").TrimStart('0');
+        return s.Length is > 0 and <= 8 && int.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out intVal);
     }
 }

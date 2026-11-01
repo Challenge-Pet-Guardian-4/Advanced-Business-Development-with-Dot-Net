@@ -91,13 +91,6 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, ComLinks(created));
     }
 
-    private bool CanAccessPetCareCircle(Guid petId)
-    {
-        if (IsAdmin) return true;
-        if (CurrentUserId is null) return false;
-        var vinculos = usuarioPetService.GetByPetId(petId);
-        return vinculos.Any(v => v.UsuarioId == CurrentUserId.Value);
-    }
 
     /// <summary>Alterna se este usuário é o responsável principal do pet.</summary>
     [HttpPut("{usuarioId:guid}/{petId:guid}")]
@@ -107,7 +100,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(Guid usuarioId, Guid petId, [FromBody] UsuarioPetUpdateRequest request)
     {
-        if (!CanAccessPetCareCircle(petId))
+        if (!CanAccessPetCareCircle(usuarioPetService, petId))
         {
             logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", usuarioId, petId, CurrentUserId, petId);
             return Forbid();
@@ -130,7 +123,7 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid usuarioId, Guid petId)
     {
-        if (!CanAccessPetCareCircle(petId))
+        if (!CanAccessPetCareCircle(usuarioPetService, petId))
         {
             logger.LogWarning("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", usuarioId, petId, CurrentUserId, petId);
             return Forbid();

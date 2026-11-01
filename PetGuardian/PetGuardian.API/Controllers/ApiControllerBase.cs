@@ -1,6 +1,7 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using PetGuardian.Application.Common;
+using PetGuardian.Application.Services.Interfaces;
 using PetGuardian.Domain.Enums;
 
 namespace PetGuardian.API.Controllers;
@@ -15,6 +16,10 @@ public abstract class ApiControllerBase : ControllerBase
 
     /// <summary>true se o usuário do token é o próprio <paramref name="usuarioId"/> ou é Admin.</summary>
     protected bool IsSelfOrAdmin(Guid usuarioId) => IsAdmin || CurrentUserId == usuarioId;
+
+    /// <summary>true se o usuário do token (ou Admin) participa da rede de cuidado do pet.</summary>
+    protected bool CanAccessPetCareCircle(IUsuarioPetService usuarioPetService, Guid petId) =>
+        IsAdmin || (CurrentUserId.HasValue && usuarioPetService.GetByPetId(petId).Any(v => v.UsuarioId == CurrentUserId.Value));
 
     protected Link LinkTo(string rel, string method, string action, object? values = null, string? controller = null) =>
         new(Url.ActionLink(action, controller, values) ?? string.Empty, rel, method);
