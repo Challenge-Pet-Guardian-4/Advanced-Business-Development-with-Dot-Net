@@ -144,11 +144,11 @@ public sealed class UsuarioPetService(
 
         if (request.ResponPrinc && !vinculo.ResponPrinc)
         {
-            var jaTemPrincipal = usuarioPetRepository.GetByPetId(petId).Any(v => v.ResponPrinc);
-            if (jaTemPrincipal)
+            var principalAtual = usuarioPetRepository.GetByPetId(petId).FirstOrDefault(v => v.ResponPrinc);
+            if (principalAtual is not null && principalAtual.UsuarioId != usuarioId)
             {
-                logger.LogWarning("Pet {PetId} já possui um responsável principal.", petId);
-                throw new InvalidOperationException("Este pet já possui um responsável principal.");
+                principalAtual.AtualizarResponsabilidade(false);
+                usuarioPetRepository.Update(principalAtual);
             }
         }
 

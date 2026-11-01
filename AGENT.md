@@ -109,7 +109,7 @@ MetodoTestado_Cenario_ResultadoEsperado
 - `EscritaTrilhaModuloAula_UsuarioPremium_DeveRetornar403Forbidden`
 
 ### 3.2 Estrutura dos Testes
-* **Testes Unitários (`.UnitTests` — 212 testes):** 16 classes de Domínio + 17 classes de Aplicação com `Moq` e `TestFixture`.
+* **Testes Unitários (`.UnitTests` — 213 testes):** 16 classes de Domínio + 17 classes de Aplicação com `Moq` e `TestFixture`.
 * **Testes de Integração (`.IntegrationTests` — 146 testes):** Pipeline HTTP completo via `CustomWebApplicationFactory` cobrindo CRUD, Paginação, Ordenação, Filtros, HATEOAS, Autenticação/Autorização RBAC, Observabilidade e Auditoria de 101 operações HTTP (`EndpointAuditTests`).
 
 ---
@@ -125,4 +125,4 @@ MetodoTestado_Cenario_ResultadoEsperado
 - [x] **Persistência Híbrida:** Oracle Database (15 tabelas EF Core) + MongoDB Atlas (`conteudos_aula`) integrados com Health Checks?
 - [x] **Observabilidade:** `GlobalExceptionHandler` RFC 7807, `HealthCheckResponseWriter`, Serilog e OpenTelemetry ativos?
 - [x] **Apresentação:** Documentação OpenAPI/Swagger ativa na rota raiz (`RoutePrefix = string.Empty`) com `BearerSecurityOperationFilter` e contrato exportado em `docs/swagger.json`?
-- [x] **Testes AAA:** Suíte com 100% de sucesso em `dotnet test` (358 testes passando: 212 unitários + 146 de integração)?
+- [x] **Testes AAA:** Suíte com 100% de sucesso em `dotnet test` (359 testes passando: 213 unitários + 146 de integração)?

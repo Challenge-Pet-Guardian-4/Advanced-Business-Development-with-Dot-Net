@@ -120,8 +120,8 @@ public class AuthControllerIntegrationTests(CustomWebApplicationFactory factory)
         Assert.Equal(email, perfil.Email);
         Assert.NotNull(perfil.Links);
         Assert.Contains(perfil.Links, l => l.Rel == "self");
-        Assert.Contains(perfil.Links, l => l.Rel == "update");
-        Assert.Contains(perfil.Links, l => l.Rel == "delete");
+        Assert.Contains(perfil.Links, l => l.Rel == "usuario");
+        Assert.Contains(perfil.Links, l => l.Rel == "score");
     }
 
     [Fact]

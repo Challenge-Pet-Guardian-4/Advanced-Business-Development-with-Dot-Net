@@ -1,7 +1,7 @@
 # 🐾 PetGuardian — Plataforma de Cuidado Colaborativo e Saúde Animal
 
 > **Advanced Business Development with .NET** — FIAP (2º Ano ADS / 2TDSPG — Challenge 2026 - 2º Semestre)  
-> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **KISS**, **YAGNI**, **DRY** e **Clean Code**, persistência poliglota (**Oracle Database + EF Core** e **MongoDB Atlas NoSQL**), **Paginação, Ordenação, Filtros e HATEOAS**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas Prometheus), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação e Autorização JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **358 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
+> API RESTful corporativa desenvolvida em **.NET 10** fundamentada em **Clean Architecture (DDD)**, princípios **SOLID**, **KISS**, **YAGNI**, **DRY** e **Clean Code**, persistência poliglota (**Oracle Database + EF Core** e **MongoDB Atlas NoSQL**), **Paginação, Ordenação, Filtros e HATEOAS**, camadas completas de **Monitoramento e Observabilidade** (Health Checks com `HealthCheckResponseWriter`, Logging Estruturado Serilog com `X-Correlation-ID`, OpenTelemetry Distributed Tracing e Métricas Prometheus), segurança de senhas com **BCrypt + Salt criptográfico**, **Autenticação e Autorização JWT Bearer (RFC 7519 / HS256)** nativa e suíte de **359 Testes Automatizados (Padrão AAA)** com xUnit, Moq e WebApplicationFactory.
 
 ---
 
@@ -16,7 +16,7 @@
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing%20%26%20Metrics-4A154B?logo=opentelemetry&logoColor=white&style=for-the-badge)
 ![JWT](https://img.shields.io/badge/JWT-Bearer%20HS256-orange?style=for-the-badge)
 ![BCrypt](https://img.shields.io/badge/BCrypt-Security%20%26%20Salt-green?style=for-the-badge)
-![xUnit](https://img.shields.io/badge/xUnit-358%20Tests%20Passing-brightgreen?style=for-the-badge)
+![xUnit](https://img.shields.io/badge/xUnit-359%20Tests%20Passing-brightgreen?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white&style=for-the-badge)
 
 ---
@@ -292,9 +292,9 @@ A API expõe endpoints estruturados para monitoramento de liveness e readiness d
 
 ---
 
-## 🧪 Suíte de Testes Automatizados (358 Testes / Padrão AAA)
+## 🧪 Suíte de Testes Automatizados (359 Testes / Padrão AAA)
 
-A solução conta com **358 testes automatizados** (`212` unitários + `146` de integração) distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura mantém **simetria 1:1** em todas as camadas (15 Entidades relacionais no Domínio + 1 Documento NoSQL no MongoDB, 16 Serviços de Recursos na Aplicação e 17 Controllers na API incluindo `AuthController`).
+A solução conta com **359 testes automatizados** (`213` unitários + `146` de integração) distribuídos entre as camadas de Domínio, Aplicação e Apresentação, seguindo rigorosamente o padrão **AAA (Arrange, Act, Assert)** e convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`. A arquitetura mantém **simetria 1:1** em todas as camadas (15 Entidades relacionais no Domínio + 1 Documento NoSQL no MongoDB, 16 Serviços de Recursos na Aplicação e 17 Controllers na API incluindo `AuthController`).
 
 ### 🧩 Compartilhamento de Contexto com Fixtures e Collection Fixtures:
 1. **Testes Unitários (`TestFixture` + `UnitTestCollection`):**
@@ -306,7 +306,7 @@ A solução conta com **358 testes automatizados** (`212` unitários + `146` de 
    * **`IntegrationTestCollection.cs`:** Define a Collection Fixture decorada com `[CollectionDefinition(Name)]` implementando `ICollectionFixture<CustomWebApplicationFactory>`.
 
 ### Organização das Suítes de Teste:
-1. **PetGuardian.UnitTests (212 testes):**
+1. **PetGuardian.UnitTests (213 testes):**
    * **Domínio (16 Classes / Validação de Invariantes & Criptografia):**
      * `PetTests`, `UsuarioTests`, `TarefaTests`, `TrilhaTests`, `ModuloTests`, `AulaTests` (incluindo `Concluir` e `Desmarcar`), `HistoricoTests`, `UsuarioPetTests`, `EnderecoTests`, `StatusTests`, `RacaTests`, `TelefoneTests`, `EstadoTests`, `CidadeTests`, `BairroTests`, `HashHelperTests`.
    * **Aplicação (17 Classes / Orquestração de Casos de Uso, Paginação e Filtros com Moq):**
@@ -326,14 +326,14 @@ A solução conta com **358 testes automatizados** (`212` unitários + `146` de 
 Para executar toda a suíte de testes (Unitários e de Integração) a partir da pasta `PetGuardian`:
 
 ```powershell
-# Executar todos os 358 testes da solução com relatório detalhado
+# Executar todos os 359 testes da solução com relatório detalhado
 dotnet test PetGuardian.sln --logger "console;verbosity=normal"
 ```
 
 Para executar separadamente por projeto:
 
 ```powershell
-# Executar os 212 testes unitários (Domínio + Aplicação com Moq e TestFixture)
+# Executar os 213 testes unitários (Domínio + Aplicação com Moq e TestFixture)
 dotnet test PetGuardian.UnitTests\PetGuardian.UnitTests.csproj
 
 # Executar os 146 testes de integração (WebApplicationFactory e IntegrationTestCollection)
@@ -345,9 +345,9 @@ dotnet test PetGuardian.IntegrationTests\PetGuardian.IntegrationTests.csproj --f
 
 ### Resumo da Execução:
 ```text
-Passed!  - Failed: 0, Passed: 212, Skipped: 0, Total: 212 - PetGuardian.UnitTests.dll (net10.0)
+Passed!  - Failed: 0, Passed: 213, Skipped: 0, Total: 213 - PetGuardian.UnitTests.dll (net10.0)
 Passed!  - Failed: 0, Passed: 146, Skipped: 0, Total: 146 - PetGuardian.IntegrationTests.dll (net10.0)
-Total Geral: 358 Testes Passando (100% de sucesso)
+Total Geral: 359 Testes Passando (100% de sucesso)
 ```
 
 ---

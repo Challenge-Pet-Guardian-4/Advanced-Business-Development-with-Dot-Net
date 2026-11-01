@@ -57,6 +57,7 @@ public sealed class GlobalExceptionHandler(
         Exception exception,
         IHostEnvironment environment) => exception switch
     {
+        DomainException e             => (StatusCodes.Status400BadRequest,  "Regra de negócio violada",             e.Message),
         ArgumentNullException e       => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
         ArgumentException e           => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
         KeyNotFoundException e        => (StatusCodes.Status404NotFound,    "Recurso não encontrado",               e.Message),

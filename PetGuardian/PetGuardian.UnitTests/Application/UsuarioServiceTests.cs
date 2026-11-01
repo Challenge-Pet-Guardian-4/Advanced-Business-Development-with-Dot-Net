@@ -75,10 +75,10 @@ public class UsuarioServiceTests(TestFixture fixture)
         var usuario = fixture.CriarUsuarioValido();
 
         var t1 = fixture.CriarTarefaValida(usuarioId: usuario.Id);
-        t1.Concluir(); // 50 pontos
+        t1.Concluir(); // 10 pontos
 
         var t2 = fixture.CriarTarefaValida(usuarioId: usuario.Id);
-        t2.Concluir(); // 50 pontos
+        t2.Concluir(); // 10 pontos
 
         var t3 = fixture.CriarTarefaValida(usuarioId: usuario.Id); // Não concluída (0 pontos)
 
@@ -89,6 +89,6 @@ public class UsuarioServiceTests(TestFixture fixture)
         var score = service.GetScore(usuario.Id);
 
         // Assert
-        Assert.Equal(100, score.PontosTotais);
+        Assert.Equal(20, score.PontosTotais);
     }
 }
