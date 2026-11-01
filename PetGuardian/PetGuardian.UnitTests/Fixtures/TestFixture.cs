@@ -36,7 +36,7 @@ public class TestFixture
     {
         return new Tarefa(
             titulo: "Passeio Matinal",
-            pontosTarefa: 50,
+            pontosTarefa: 10,
             descricao: "Caminhada de 30 minutos no parque.",
             prazo: DateTime.UtcNow.AddDays(1),
             petId: petId ?? Guid.NewGuid(),

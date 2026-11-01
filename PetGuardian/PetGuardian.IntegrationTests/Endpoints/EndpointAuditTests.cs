@@ -166,7 +166,7 @@ public class EndpointAuditTests(CustomWebApplicationFactory factory, ITestOutput
         await ExecutarAsync(HttpMethod.Get, $"/api/status/{statusPendente.Id}", HttpStatusCode.OK);
 
         // 12. TAREFA
-        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("Vacinação V10", 50, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
+        var tarefaPostRes = await ExecutarAsync(HttpMethod.Post, "/api/tarefa", HttpStatusCode.Created, JsonContent.Create(new TarefaRequest("Vacinação V10", 10, "Aplicar dose anual", DateTime.UtcNow.AddDays(3), pet.Id, usuario.Id)));
         var tarefa = await tarefaPostRes.Content.ReadFromJsonAsync<TarefaResponse>();
         await ExecutarAsync(HttpMethod.Get, "/api/tarefa", HttpStatusCode.OK);
         await ExecutarAsync(HttpMethod.Get, $"/api/tarefa/{tarefa!.Id}", HttpStatusCode.OK);

@@ -11,8 +11,17 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class TarefaController(
     ITarefaService tarefaService,
+    IUsuarioPetService usuarioPetService,
     ILogger<TarefaController> logger) : ApiControllerBase
 {
+    private bool CanAccessPetCareCircle(Guid petId)
+    {
+        if (IsAdmin) return true;
+        if (CurrentUserId is null) return false;
+        var vinculos = usuarioPetService.GetByPetId(petId);
+        return vinculos.Any(v => v.UsuarioId == CurrentUserId.Value);
+    }
+
     /// <summary>Lista tarefas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/tarefa?petId={id}&amp;concluida=false&amp;sortBy=Prazo&amp;pageSize=5</c></remarks>
     [HttpGet]
@@ -97,10 +106,24 @@ public class TarefaController(
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TarefaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(Guid id, [FromBody] TarefaUpdateRequest request)
     {
         logger.LogInformation("HTTP PUT /api/tarefa/{Id}: Atualizando tarefa '{Titulo}'.", id, request.Titulo);
+        var existing = tarefaService.GetById(id);
+        if (existing is null)
+        {
+            logger.LogWarning("HTTP PUT /api/tarefa/{Id}: Tarefa não encontrada para atualização.", id);
+            return NotFound();
+        }
+
+        if (!CanAccessPetCareCircle(existing.PetId))
+        {
+            logger.LogWarning("HTTP PUT /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
+            return Forbid();
+        }
+
         var updated = tarefaService.Update(id, request);
         if (updated is null)
         {
@@ -130,10 +153,24 @@ public class TarefaController(
     /// <summary>Exclui uma tarefa.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
         logger.LogInformation("HTTP DELETE /api/tarefa/{Id}: Excluindo tarefa.", id);
+        var existing = tarefaService.GetById(id);
+        if (existing is null)
+        {
+            logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: Tarefa não encontrada para exclusão.", id);
+            return NotFound();
+        }
+
+        if (!CanAccessPetCareCircle(existing.PetId))
+        {
+            logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
+            return Forbid();
+        }
+
         if (!tarefaService.Delete(id))
         {
             logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: Tarefa não encontrada para exclusão.", id);

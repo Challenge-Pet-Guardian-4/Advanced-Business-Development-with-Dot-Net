@@ -38,7 +38,7 @@ public class TarefaServiceTests(TestFixture fixture)
         var usuarioId = Guid.NewGuid();
         var statusPendente = new Status("PENDENTE");
 
-        var request = new TarefaRequest("Vacinar", 50, "Vacina antirrábica", DateTime.UtcNow.AddDays(5), petId, usuarioId);
+        var request = new TarefaRequest("Vacinar", 10, "Vacina antirrábica", DateTime.UtcNow.AddDays(5), petId, usuarioId);
 
         _petRepoMock.Setup(r => r.ExistsById(petId)).Returns(true);
         _usuarioRepoMock.Setup(r => r.ExistsById(usuarioId)).Returns(true);
@@ -62,7 +62,7 @@ public class TarefaServiceTests(TestFixture fixture)
         var service = CreateService();
         var petId = Guid.NewGuid();
         var usuarioId = Guid.NewGuid();
-        var request = new TarefaRequest("Vacinar", 50, "Vacina", DateTime.UtcNow.AddDays(5), petId, usuarioId);
+        var request = new TarefaRequest("Vacinar", 10, "Vacina", DateTime.UtcNow.AddDays(5), petId, usuarioId);
 
         _petRepoMock.Setup(r => r.ExistsById(petId)).Returns(true);
         _usuarioRepoMock.Setup(r => r.ExistsById(usuarioId)).Returns(true);

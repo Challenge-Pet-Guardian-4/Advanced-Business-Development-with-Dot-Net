@@ -11,13 +11,6 @@ namespace PetGuardian.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"
-BEGIN
-  FOR t IN (SELECT table_name FROM user_tables WHERE table_name <> '__EFMigrationsHistory') LOOP
-    EXECUTE IMMEDIATE 'DROP TABLE ""' || t.table_name || '"" CASCADE CONSTRAINTS PURGE';
-  END LOOP;
-END;");
-
             migrationBuilder.CreateTable(
                 name: "ESTADO",
                 columns: table => new

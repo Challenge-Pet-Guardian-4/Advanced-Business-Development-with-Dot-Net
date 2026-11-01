@@ -98,6 +98,8 @@ public sealed class Tarefa : BaseEntity
             throw new DomainException("O título deve ter no máximo 30 caracteres.");
         if (pontosTarefa < 0)
             throw new DomainException("Os pontos não podem ser negativos.");
+        if (pontosTarefa > 10)
+            throw new DomainException("Os pontos da tarefa devem ser no máximo 10.");
         if (string.IsNullOrWhiteSpace(descricao))
             throw new DomainException("A descrição não pode ser vazia.");
         if (descricao.Trim().Length > 200)

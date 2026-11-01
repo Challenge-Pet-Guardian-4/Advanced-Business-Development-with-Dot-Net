@@ -13,7 +13,7 @@ public class TarefaTests(TestFixture fixture)
     {
         // Arrange
         var titulo = "Dar Medicamento";
-        var pontos = 30;
+        var pontos = 10;
         var descricao = "Antibiótico pós-cirúrgico";
         var prazo = DateTime.UtcNow.AddDays(2);
         var petId = Guid.NewGuid();
@@ -43,7 +43,7 @@ public class TarefaTests(TestFixture fixture)
 
         // Act
         var ex = Assert.Throws<DomainException>(() =>
-            new Tarefa("Banho", 20, "Banho no pet", prazoPassado, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
+            new Tarefa("Banho", 10, "Banho no pet", prazoPassado, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
 
         // Assert
         Assert.Equal("O prazo deve ser uma data/hora futura.", ex.Message);
@@ -55,7 +55,7 @@ public class TarefaTests(TestFixture fixture)
         // Arrange
         var tarefa = fixture.CriarTarefaValida();
         var novoTitulo = "Passeio Noturno";
-        var novosPontos = 40;
+        var novosPontos = 8;
         var novaDescricao = "Volta de 40 min";
         var novoPrazo = DateTime.UtcNow.AddDays(3);
 
@@ -96,4 +96,16 @@ public class TarefaTests(TestFixture fixture)
         // Assert
         Assert.Equal("Não é possível editar uma tarefa já concluída.", ex.Message);
     }
+
+    [Fact]
+    public void Construtor_PontosMaiorQueDez_DeveLancarDomainException()
+    {
+        // Act
+        var ex = Assert.Throws<DomainException>(() =>
+            new Tarefa("Banho", 15, "Banho no pet", DateTime.UtcNow.AddDays(1), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
+
+        // Assert
+        Assert.Equal("Os pontos da tarefa devem ser no máximo 10.", ex.Message);
+    }
+
 }

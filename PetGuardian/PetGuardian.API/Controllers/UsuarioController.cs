@@ -93,9 +93,9 @@ public class UsuarioController(
     {
         logger.LogInformation("HTTP POST /api/usuario: Iniciando cadastro do usuário '{Nome}' ({Email}).", request.Nome, request.Email);
 
-        if (request.Role == RoleUsuario.Admin && !IsAdmin)
+        if (!IsAdmin && request.Role != RoleUsuario.Comum)
         {
-            logger.LogWarning("HTTP POST /api/usuario: tentativa de criar Admin sem privilégio ({Email}).", request.Email);
+            logger.LogWarning("HTTP POST /api/usuario: tentativa de criar usuário com perfil {Role} sem privilégio de administrador ({Email}).", request.Role, request.Email);
             return Forbid();
         }
 

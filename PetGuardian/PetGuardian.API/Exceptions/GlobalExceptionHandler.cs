@@ -59,9 +59,11 @@ public sealed class GlobalExceptionHandler(
     {
         ArgumentNullException e       => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
         ArgumentException e           => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
-        DomainException e             => (StatusCodes.Status400BadRequest,  "Regra de negócio violada",             e.Message),
-        InvalidOperationException e   => (StatusCodes.Status400BadRequest,  "Não foi possível concluir a operação", e.Message),
         KeyNotFoundException e        => (StatusCodes.Status404NotFound,    "Recurso não encontrado",               e.Message),
+        InvalidOperationException e when e.Message.Contains("não encontrad", StringComparison.OrdinalIgnoreCase)
+                                      || e.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                                      => (StatusCodes.Status404NotFound,    "Recurso não encontrado",               e.Message),
+        InvalidOperationException e   => (StatusCodes.Status400BadRequest,  "Não foi possível concluir a operação", e.Message),
         UnauthorizedAccessException e => (StatusCodes.Status401Unauthorized,"Não autorizado",                       e.Message),
         DbUpdateException e           => (StatusCodes.Status409Conflict,    "Conflito de dados no banco de dados",  e.InnerException?.Message ?? e.Message),
         OracleException e             => (StatusCodes.Status502BadGateway,  "Banco de dados indisponível",          e.Message),
