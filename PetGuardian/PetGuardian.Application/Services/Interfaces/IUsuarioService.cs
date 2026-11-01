@@ -12,5 +12,6 @@ public interface IUsuarioService
     UsuarioResponse Create(UsuarioRequest request);
     /// <summary>TelefoneId não é reatribuível por aqui.</summary>
     UsuarioResponse? Update(Guid id, UsuarioUpdateRequest request);
+    UsuarioResponse UpgradePremium(Guid id);
     bool Delete(Guid id);
 }

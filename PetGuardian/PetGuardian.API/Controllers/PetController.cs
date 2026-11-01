@@ -11,8 +11,26 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class PetController(
     IPetService petService,
+    IUsuarioPetService usuarioPetService,
     ILogger<PetController> logger) : ApiControllerBase
 {
+    /// <summary>Lista pets vinculados ao usuário autenticado.</summary>
+    [HttpGet("me")]
+    [HttpGet("/pets/me")]
+    [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult GetMyPets()
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        var vinculos = usuarioPetService.GetByUsuarioId(CurrentUserId.Value);
+        var pets = vinculos
+            .Select(v => petService.GetById(v.PetId))
+            .Where(p => p is not null)
+            .Select(p => ComLinks(p!))
+            .ToList();
+        return Ok(pets);
+    }
+
     /// <summary>Lista pets com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/pet?page=1&amp;pageSize=10&amp;sortBy=Nome&amp;sortDir=desc&amp;nome=re&amp;porte=Medio</c></remarks>
     [HttpGet]

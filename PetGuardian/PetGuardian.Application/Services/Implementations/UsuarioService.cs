@@ -134,6 +134,22 @@ public sealed class UsuarioService(
         return UsuarioResponse.FromDomain(usuario);
     }
 
+    public UsuarioResponse UpgradePremium(Guid id)
+    {
+        logger.LogInformation("Realizando upgrade para Premium do usuário: {UsuarioId}", id);
+        var usuario = usuarioRepository.GetById(id);
+        if (usuario is null)
+        {
+            logger.LogWarning("Tentativa de upgrade para usuário inexistente: {UsuarioId}", id);
+            throw new InvalidOperationException("Usuário não encontrado.");
+        }
+
+        usuario.AtualizarRole(Domain.Enums.RoleUsuario.Premium);
+        usuarioRepository.Update(usuario);
+        logger.LogInformation("Usuário {UsuarioId} atualizado para Premium com sucesso.", id);
+        return UsuarioResponse.FromDomain(usuario);
+    }
+
     public bool Delete(Guid id)
     {
         logger.LogInformation("Iniciando exclusão de usuário: {UsuarioId}", id);

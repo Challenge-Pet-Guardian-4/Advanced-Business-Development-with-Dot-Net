@@ -7026,7 +7026,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Cadastro de usuário com telefone (DDD + número) e endereço (CEP + número) inline, alinhado ao Java."
+        "description": "Cadastro de usuário com telefone (DDD + número) e endereço (CEP + número) inline."
       },
       "UsuarioResponse": {
         "type": "object",

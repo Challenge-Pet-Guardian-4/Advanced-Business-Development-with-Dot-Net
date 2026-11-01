@@ -158,6 +158,35 @@ public sealed class TarefaService(
         return TarefaResponse.FromDomain(tarefa);
     }
 
+    public TarefaResponse Desmarcar(Guid tarefaId, Guid usuarioId)
+    {
+        using var activity = PetGuardianActivitySource.Source.StartActivity("TarefaService.Desmarcar");
+        activity?.SetTag("tarefa.id", tarefaId.ToString());
+        activity?.SetTag("tarefa.usuarioId", usuarioId.ToString());
+
+        logger.LogInformation("Iniciando reversão de conclusão da tarefa {TarefaId} pelo usuário {UsuarioId}", tarefaId, usuarioId);
+        var tarefa = tarefaRepository.GetById(tarefaId);
+        if (tarefa is null)
+        {
+            logger.LogWarning("Tentativa de desmarcar tarefa inexistente: {TarefaId}", tarefaId);
+            throw new InvalidOperationException("Tarefa não encontrada.");
+        }
+
+        if (!usuarioPetRepository.Exists(usuarioId, tarefa.PetId))
+        {
+            logger.LogWarning("Usuário {UsuarioId} tentou desmarcar tarefa {TarefaId} sem vínculo com o pet {PetId}",
+                usuarioId, tarefaId, tarefa.PetId);
+            throw new InvalidOperationException("Somente cuidadores vinculados ao pet podem desmarcar a tarefa.");
+        }
+
+        var statusPendente = BuscarStatusObrigatorio("PENDENTE");
+        tarefa.Desmarcar(statusPendente.Id);
+        tarefaRepository.Update(tarefa);
+
+        logger.LogInformation("Tarefa {TarefaId} desmarcada com sucesso (revertida para status PENDENTE).", tarefaId);
+        return TarefaResponse.FromDomain(tarefa);
+    }
+
     public bool Delete(Guid id)
     {
         logger.LogInformation("Iniciando exclusão da tarefa: {TarefaId}", id);

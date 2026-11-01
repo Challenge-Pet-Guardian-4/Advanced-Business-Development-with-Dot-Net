@@ -38,14 +38,15 @@
 O **PetGuardian** foi concebido para resolver o problema da descentralização do cuidado diário de animais domésticos quando múltiplos cuidadores, famílias ou profissionais estão envolvidos. A plataforma centraliza rotinas, registra o histórico de saúde, monitora tarefas e incentiva a realização de cuidados através de um sistema gamificado centrado no animal.
 
 ### 🌟 Destaques Arquiteturais & Negócio
-1. **Rede de Cuidado Colaborativo (`UsuarioPet`):** Relação N:N entre Cuidadores (`Usuario`) e `Pet`. Suporta definição de **Responsável Principal** (`ResponPrinc`), envio de convites para novos co-cuidadores (por ID ou E-mail) e salvaguarda do animal (impede desvinculação sem um tutor ativo).
-2. **Ciclo Completo de Tarefas (`Tarefa`):** Agendamento e execução de cuidados com pontuação gamificada (`PontosTarefa`). Conclusão de tarefas (`POST /api/tarefa/{id}/concluir`) audita a ação e gera automaticamente registro no histórico do pet (`TAREFA_CONCLUIDA`).
-3. **Trilhas, Módulos e Aulas com Persistência Poliglota (`Trilha`, `Modulo`, `Aula` + `ConteudoAula` no MongoDB):** Sistema de capacitação dos tutores com aulas interativas (`PATCH /api/aula/{id}/concluir` e `/desmarcar`), pontuação gamificada no Oracle e conteúdo didático rico em Markdown armazenado na coleção `conteudos_aula` no MongoDB Atlas.
-4. **Histórico Consolidado do Pet (`Historico` & `GetHistorico`):** Linha do tempo unificada de eventos clínicos, marcos de saúde, vacinas e tarefas realizadas em ordem cronológica decrescente.
-5. **Segurança de Senhas no Domínio (`HashHelper` + Salt):** Criptografia com BCrypt e Salt criptográfico exclusivo (`Guid.NewGuid().ToString("N")`) por usuário, prevenindo persistência de senhas em texto puro.
-6. **Resolução Inteligente de Endereço via ViaCEP (`IViaCepService`):** Cadastro automatizado de endereços (`Cep`, `Numero`) resolvendo de forma transparente `Bairro`, `Cidade` e `Estado` com reaproveitamento de entidades no banco.
-7. **Paginação, Ordenação, Filtros e HATEOAS:** Consultas paginadas (`PageQuery` + `PagedResponse<T>`) executadas no banco (`Skip`/`Take`) para os 7 agregados principais (`Pet`, `Tarefa`, `Usuario`, `Historico`, `Trilha`, `Modulo` e `Aula`) e hipermídia `_links` em todos os recursos da API.
-8. **Eliminação de N+1 Queries & Otimização DRY (Consultas Batch & ToLookup):** Consultas do EF Core executadas com expressões semânticas (`Find`, `FirstOrDefault`) e `.AsNoTracking()`. Na montagem da Rede de Cuidado (`UsuarioPetService.GetRedeCuidadoByUsuarioId`) e na resolução de conteúdos de aulas no MongoDB (`GetByAulaIdsAsync`), os dados são carregados em lote, reduzindo o overhead de $O(N)$ para $O(1)$ roundtrips de banco de dados.
+1. **Rede de Cuidado Colaborativo (`UsuarioPet`) & Segurança Anti-IDOR:** Relação N:N entre Cuidadores (`Usuario`) e `Pet`. Suporta definição de **Responsável Principal** (`ResponPrinc`), envio de convites para novos co-cuidadores (por ID ou E-mail) e salvaguarda do animal (impede desvinculação sem um tutor ativo). Todas as mutações e acessos a dados de pets e tarefas validam o pertencimento do usuário autenticado ao círculo de cuidado (`CanAccessPetCareCircle`), mitigando vulnerabilidades de Insecure Direct Object References (IDOR).
+2. **Ciclo Completo e Reversível de Tarefas (`Tarefa`):** Agendamento e execução de cuidados com pontuação gamificada estritamente balanceada (`0 <= pontos <= 10`). O ciclo de vida suporta tanto conclusão auditada (`POST` e `PATCH /api/tarefa/{id}/concluir`), que credita pontuação e gera marco no histórico do pet (`TAREFA_CONCLUIDA`), quanto reversão/desmarcação (`PATCH /api/tarefa/{id}/desmarcar`), que retorna a tarefa ao estado pendente com integridade referencial.
+3. **Endpoints Contextuais `/me` & Aliases Diretos:** Suporte nativo a rotas contextuais baseadas nas claims do token JWT (`/api/pet/me`, `/api/tarefa/me`, `/api/trilha/me`, `/api/usuario/me`, `/api/usuario/me/rede-cuidado`, `/api/usuario/me/upgrade-premium`), além de aliases diretos sem o prefixo `/api` (`/pets/me`, `/tarefas/me`, `/trilhas/me`, `/usuarios/me`), garantindo integração transparente com aplicativos mobile e clientes RESTful.
+4. **Trilhas, Módulos e Aulas com Persistência Poliglota (`Trilha`, `Modulo`, `Aula` + `ConteudoAula` no MongoDB):** Sistema de capacitação dos tutores com aulas interativas (`PATCH /api/aula/{id}/concluir` e `/desmarcar`), pontuação gamificada no Oracle e conteúdo didático rico em Markdown armazenado na coleção `conteudos_aula` no MongoDB Atlas com resiliência de identificadores (`FlexibleAulaIdSerializer` suportando String, ObjectId e inteiros).
+5. **Histórico Consolidado do Pet (`Historico` & `GetHistorico`):** Linha do tempo unificada de eventos clínicos, marcos de saúde, vacinas e tarefas realizadas em ordem cronológica decrescente.
+6. **Segurança de Senhas no Domínio (`HashHelper` + Salt):** Criptografia com BCrypt e Salt criptográfico exclusivo (`Guid.NewGuid().ToString("N")`) por usuário, prevenindo persistência de senhas em texto puro.
+7. **Resolução Inteligente de Endereço via ViaCEP (`IViaCepService`):** Cadastro automatizado de endereços (`Cep`, `Numero`) resolvendo de forma transparente `Bairro`, `Cidade` e `Estado` com reaproveitamento de entidades no banco.
+8. **Paginação, Ordenação, Filtros e HATEOAS:** Consultas paginadas (`PageQuery` + `PagedResponse<T>`) executadas no banco (`Skip`/`Take`) para os 7 agregados principais (`Pet`, `Tarefa`, `Usuario`, `Historico`, `Trilha`, `Modulo` e `Aula`) e hipermídia `_links` em todos os recursos da API.
+9. **Eliminação de N+1 Queries & Otimização DRY (Consultas Batch & ToLookup):** Consultas do EF Core executadas com expressões semânticas (`Find`, `FirstOrDefault`) e `.AsNoTracking()`. Na montagem da Rede de Cuidado (`UsuarioPetService.GetRedeCuidadoByUsuarioId`) e na resolução de conteúdos de aulas no MongoDB (`GetByAulaIdsAsync`), os dados são carregados em lote, reduzindo o overhead de $O(N)$ para $O(1)$ roundtrips de banco de dados.
 
 ---
 
@@ -412,18 +413,19 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-### 🐾 1. Pets (`/api/pet`)
-*Gerenciamento dos animais domésticos, porte, score de saúde e histórico consolidado.*
+### 🐾 1. Pets (`/api/pet` & `/pets`)
+*Gerenciamento dos animais domésticos, porte, score de saúde e histórico consolidado. Suporta aliases RESTful `/pets`.*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/pet` | Lista pets com **paginação, ordenação, filtros** (`nome`, `racaId`, `porte`, `sexo`, `castrado`) e **HATEOAS** |
-| `GET` | `/api/pet/{id}` | Busca os detalhes de um pet específico por ID (com `_links`) |
+| `GET` | `/api/pet` ou `/pets` | Lista pets com **paginação, ordenação, filtros** (`nome`, `racaId`, `porte`, `sexo`, `castrado`) e **HATEOAS** |
+| `GET` | `/api/pet/me` ou `/pets/me` | Retorna todos os pets associados ao cuidador/usuário autenticado via token JWT (com `_links`) |
+| `GET` | `/api/pet/{id}` ou `/pets/{id}` | Busca os detalhes de um pet específico por ID (com `_links`) |
 | `GET` | `/api/pet/by-raca/{racaId}` | Filtra e lista todos os pets associados a uma raça |
-| `GET` | `/api/pet/{id}/historico` | Retorna a linha do tempo consolidada e cronológica de eventos do pet |
-| `POST` | `/api/pet` | Cadastra um novo pet |
-| `PUT` | `/api/pet/{id}` | Atualiza dados cadastrais e editáveis do pet |
-| `DELETE` | `/api/pet/{id}` | Remove o registro de um pet do sistema |
+| `GET` | `/api/pet/{id}/historico` ou `/pets/{id}/historico` | Retorna a linha do tempo consolidada e cronológica de eventos do pet |
+| `POST` | `/api/pet` ou `/pets` | Cadastra um novo pet |
+| `PUT` | `/api/pet/{id}` ou `/pets/{id}` | Atualiza dados cadastrais e editáveis do pet |
+| `DELETE` | `/api/pet/{id}` ou `/pets/{id}` | Remove o registro de um pet do sistema |
 
 ---
 
@@ -440,18 +442,22 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-### 👤 3. Usuários & Tutores (`/api/usuario`)
-*Gestão de tutores e cuidadores, com segurança criptográfica de senhas (BCrypt + Salt).*
+### 👤 3. Usuários & Tutores (`/api/usuario` & `/usuarios`)
+*Gestão de tutores e cuidadores, com segurança criptográfica de senhas (BCrypt + Salt) e endpoints de perfil contextual. Suporta aliases `/usuarios`.*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/usuario` | Lista usuários com **paginação, ordenação, filtros** (`nome`, `email`, `role`) e **HATEOAS** (`AdminOnly`) |
-| `GET` | `/api/usuario/{id}` | Busca um usuário por ID (com `_links`) |
+| `GET` | `/api/usuario` ou `/usuarios` | Lista usuários com **paginação, ordenação, filtros** (`nome`, `email`, `role`) e **HATEOAS** (`AdminOnly`) |
+| `GET` | `/api/usuario/me` ou `/usuarios/me` | Retorna o perfil completo do usuário autenticado a partir das claims do token JWT (com `_links`) |
+| `PUT` | `/api/usuario/me` ou `/usuarios/me` | Atualiza o perfil (nome, senha) do usuário logado sem expor IDs em URL |
+| `GET` | `/api/usuario/me/rede-cuidado` ou `/usuarios/me/rede-cuidado` | Consulta a árvore de cuidado colaborativo (Care Circle) do próprio usuário autenticado |
+| `PATCH` | `/api/usuario/me/upgrade-premium` ou `/usuarios/me/upgrade-premium` | Promove a conta do usuário autenticado para o perfil `Premium` |
+| `GET` | `/api/usuario/{id}` ou `/usuarios/{id}` | Busca um usuário por ID (com `_links`) |
 | `GET` | `/api/usuario/by-email` | Busca usuário por endereço de e-mail (`?email=...`) |
-| `GET` | `/api/usuario/{id}/score` | Consulta a pontuação gamificada acumulada do usuário |
-| `POST` | `/api/usuario` | Cadastra um novo usuário (`[AllowAnonymous]`; criação de perfil `Admin` exige token `Admin`) |
-| `PUT` | `/api/usuario/{id}` | Atualiza dados do usuário (próprio usuário ou `Admin`) |
-| `DELETE` | `/api/usuario/{id}` | Remove um usuário do sistema (próprio usuário ou `Admin`) |
+| `GET` | `/api/usuario/{id}/score` ou `/usuarios/{id}/score` | Consulta a pontuação gamificada acumulada do usuário |
+| `POST` | `/api/usuario` ou `/usuarios` | Cadastra um novo usuário (`[AllowAnonymous]`; criação de perfil `Admin` exige token `Admin`) |
+| `PUT` | `/api/usuario/{id}` ou `/usuarios/{id}` | Atualiza dados do usuário (próprio usuário ou `Admin`) |
+| `DELETE` | `/api/usuario/{id}` ou `/usuarios/{id}` | Remove um usuário do sistema (próprio usuário ou `Admin`) |
 
 ---
 
@@ -551,20 +557,22 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-### ✅ 11. Tarefas & Rotinas de Cuidado (`/api/tarefa`)
-*Agendamento, rotinas diárias e conclusão gamificada de tarefas.*
+### ✅ 11. Tarefas & Rotinas de Cuidado (`/api/tarefa` & `/tarefas`)
+*Agendamento, rotinas diárias e conclusão gamificada de tarefas com pontuação balanceada (`0 <= pontos <= 10`) e ciclo reversível. Suporta aliases `/tarefas`.*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/tarefa` | Lista tarefas com **paginação, ordenação, filtros** (`titulo`, `petId`, `usuarioId`, `statusId`, `concluida`, `prazoDe`, `prazoAte`) e **HATEOAS** |
-| `GET` | `/api/tarefa/{id}` | Busca detalhes de uma tarefa por ID (com `_links` contextuais) |
+| `GET` | `/api/tarefa` ou `/tarefas` | Lista tarefas com **paginação, ordenação, filtros** (`titulo`, `petId`, `usuarioId`, `statusId`, `concluida`, `prazoDe`, `prazoAte`) e **HATEOAS** |
+| `GET` | `/api/tarefa/me` ou `/tarefas/me` | Retorna tarefas associadas ao usuário autenticado, com filtro opcional `?concluida=true|false` (com `_links`) |
+| `GET` | `/api/tarefa/{id}` ou `/tarefas/{id}` | Busca detalhes de uma tarefa por ID (com `_links` contextuais `concluir` ou `desmarcar`) |
 | `GET` | `/api/tarefa/by-pet/{petId}` | Lista todas as tarefas associadas a um pet específico |
 | `GET` | `/api/tarefa/by-usuario/{usuarioId}` | Lista tarefas atribuídas a um cuidador/usuário |
 | `GET` | `/api/tarefa/by-status/{statusId}` | Filtra e lista tarefas por status |
-| `POST` | `/api/tarefa` | Cria uma nova rotina/tarefa de cuidado para o pet |
-| `PUT` | `/api/tarefa/{id}` | Atualiza título, descrição, prazo ou pontuação de uma tarefa não concluída |
-| `POST` | `/api/tarefa/{id}/concluir` | Conclui tarefa, credita pontuação ao usuário e gera marco no histórico do pet |
-| `DELETE` | `/api/tarefa/{id}` | Remove uma tarefa agendada |
+| `POST` | `/api/tarefa` ou `/tarefas` | Cria uma nova rotina/tarefa de cuidado para o pet (`pontos` entre 0 e 10) |
+| `PUT` | `/api/tarefa/{id}` ou `/tarefas/{id}` | Atualiza título, descrição, prazo ou pontuação (`pontos <= 10`) de uma tarefa não concluída |
+| `POST` ou `PATCH` | `/api/tarefa/{id}/concluir` ou `/tarefas/{id}/concluir` | Conclui tarefa, credita pontuação ao usuário e gera marco no histórico do pet |
+| `PATCH` | `/api/tarefa/{id}/desmarcar` ou `/tarefas/{id}/desmarcar` | Reverte a tarefa concluída para o estado pendente, reabrindo a rotina |
+| `DELETE` | `/api/tarefa/{id}` ou `/tarefas/{id}` | Remove uma tarefa agendada |
 
 ---
 
@@ -581,17 +589,18 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-### 🎓 13. Trilhas de Aprendizado (`/api/trilha`)
-*Capacitação continuada dos tutores com conteúdos educativos (escrita exclusiva Admin).*
+### 🎓 13. Trilhas de Aprendizado (`/api/trilha` & `/trilhas`)
+*Capacitação continuada dos tutores com conteúdos educativos (escrita exclusiva Admin). Suporta aliases `/trilhas`.*
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
-| `GET` | `/api/trilha` | Lista trilhas com **paginação, ordenação, filtros** (`nome`, `petId`) e **HATEOAS** |
-| `GET` | `/api/trilha/{id}` | Busca uma trilha por ID (com `_links`) |
+| `GET` | `/api/trilha` ou `/trilhas` | Lista trilhas com **paginação, ordenação, filtros** (`nome`, `petId`) e **HATEOAS** |
+| `GET` | `/api/trilha/me` ou `/trilhas/me` | Retorna as trilhas de aprendizado recomendadas para os pets do usuário autenticado (com `_links`) |
+| `GET` | `/api/trilha/{id}` ou `/trilhas/{id}` | Busca uma trilha por ID (com `_links`) |
 | `GET` | `/api/trilha/by-pet/{petId}` | Lista trilhas recomendadas para um pet específico |
-| `POST` | `/api/trilha` | Cria uma nova trilha de aprendizado (`AdminOnly`) |
-| `PUT` | `/api/trilha/{id}` | Atualiza dados da trilha (`AdminOnly`) |
-| `DELETE` | `/api/trilha/{id}` | Remove uma trilha (`AdminOnly`) |
+| `POST` | `/api/trilha` ou `/trilhas` | Cria uma nova trilha de aprendizado (`AdminOnly`) |
+| `PUT` | `/api/trilha/{id}` ou `/trilhas/{id}` | Atualiza dados da trilha (`AdminOnly`) |
+| `DELETE` | `/api/trilha/{id}` ou `/trilhas/{id}` | Remove uma trilha (`AdminOnly`) |
 
 ---
 
@@ -650,16 +659,21 @@ Todas as entidades e agregados contam com rotas padronizadas, suporte completo a
 
 ---
 
-## 18. 🔐 Autenticação e Autorização (JWT + RBAC)
+## 18. 🔐 Autenticação e Autorização (JWT + RBAC) & Proteção Anti-IDOR
 
 Toda rota exige `Authorization: Bearer {token}`, exceto `POST /api/auth/login`, `POST /login`, `POST /api/usuario` (auto-cadastro), `POST /api/endereco` (auto-cadastro), `POST /api/telefone` (auto-cadastro) e `/health*`. No Swagger UI, o filtro `BearerSecurityOperationFilter` exibe o cadeado de segurança exclusivamente nas operações protegidas.
 
 | Perfil | Permissões |
 | :--- | :--- |
-| **Comum / Premium** | Consultar recursos; criar/editar seus pets, tarefas, históricos e vínculos (`UsuarioPet`); concluir/desmarcar aulas (`PATCH /api/aula/{id}/concluir` e `/desmarcar`); editar/excluir **a si mesmo** |
-| **Admin** | Acesso total, incluindo listar todos os usuários (`GET /api/usuario`), gerenciar tabelas de referência (`Estado`, `Cidade`, `Bairro`, `Raca`, `Status`) e gerenciar o catálogo educativo (`Trilha`, `Modulo`, `Aula` e `conteudos_aula` no MongoDB) |
+| **Comum** | Consultar recursos autorizados; acessar seus endpoints contextuais (`/pets/me`, `/tarefas/me`, `/trilhas/me`, `/usuarios/me`, `/usuarios/me/rede-cuidado`); criar/editar seus pets, tarefas (pontos $\le 10$), históricos e vínculos (`UsuarioPet`); concluir e desmarcar tarefas e aulas; realizar auto-upgrade para **Premium** (`PATCH /usuarios/me/upgrade-premium`); editar/excluir a si mesmo. |
+| **Premium** | Todos os privilégios do perfil Comum com acesso expandido e prioridade na rede de cuidados e funcionalidades estendidas. |
+| **Admin** | Acesso total, incluindo listar todos os usuários (`GET /api/usuario`), gerenciar tabelas de referência (`Estado`, `Cidade`, `Bairro`, `Raca`, `Status`) e gerenciar o catálogo educativo (`Trilha`, `Modulo`, `Aula` e `conteudos_aula` no MongoDB). |
 
-O perfil `Admin` só pode ser atribuído por outro Admin (proteção anti-escalada de privilégio).
+### 🛡️ Proteção Anti-IDOR e Círculo de Cuidado (`CanAccessPetCareCircle`)
+Para mitigar falhas de **Insecure Direct Object References (IDOR)**:
+1. Endpoints contextuais `/me` derivam o identificador unicamente das claims assinadas digitalmente do JWT (`CurrentUserId`), eliminando o envio de IDs de usuário pela URL do cliente HTTP/Mobile.
+2. Mutações e consultas de tarefas e pets verificam se o usuário logado possui vínculo ativo na tabela de associação `USUARIO_PET` para aquele pet antes de autorizar a ação. Usuários não autorizados recebem `403 Forbidden` ou `404 Not Found`.
+3. O perfil `Admin` só pode ser atribuído por outro Admin (proteção anti-escalada de privilégio).
 
 ---
 
@@ -703,15 +717,16 @@ Todas as respostas de recursos incluem `_links` (`self`, `update`, `delete`, lin
 
 ---
 
-## 21. 🍃 MongoDB Atlas (Persistência Poliglota)
+## 21. 🍃 MongoDB Atlas (Persistência Poliglota & Serialização Flexível)
 
 ![Coleção conteudos_aula no MongoDB Atlas](docs/mongoDB.png)
 
-- **Oracle** é a fonte relacional transacional das 15 entidades (`TRILHA`, `MODULO`, `AULA`, `USUARIO`, `PET`, etc.).
-- **MongoDB Atlas** armazena exclusivamente a coleção **`conteudos_aula`** (1:1 com `AULA` via `aula_id`), contendo `tipo_conteudo`, `corpo_markdown`, `links_recursos` e `atualizado_em`, com índice único em `aula_id` garantido automaticamente por `MongoIndexesInitializer`.
-- Endpoints RESTful com HATEOAS em `/api/aula/{aulaId}/conteudo` (`GET`, `POST`, `PUT`, `DELETE`).
-- As consultas de `Aula` (`/api/aula`, `/api/aula/{id}`, `/api/aula/by-modulo/{moduloId}`) enriquecem automaticamente o campo `conteudo` a partir do MongoDB Atlas (em lote ou individualmente) e o `DELETE /api/aula/{id}` remove em cascata o documento correspondente.
-- Health check `mongodb` integrado em `/health` e `/health/ready`.
+- **Oracle Database 19c** é a fonte relacional transacional das 15 entidades estruturadas (`TRILHA`, `MODULO`, `AULA`, `USUARIO`, `PET`, `TAREFA`, etc.).
+- **MongoDB Atlas** armazena a coleção **`conteudos_aula`** (1:1 com `AULA` via `aula_id`), contendo `tipo_conteudo`, `corpo_markdown`, `links_recursos` e `atualizado_em`, com índice único em `aula_id` garantido automaticamente por `MongoIndexesInitializer`.
+- **Serialização Resiliente (`FlexibleAulaIdSerializer`):** O BsonSerializer customizado deserializa com tolerância a múltiplos tipos BSON (`String`, `ObjectId`, `Int32`, `Int64`), prevenindo falhas de conversão de esquema ao interoperar com diferentes ferramentas e bancos legados.
+- **Consultas em Lote Anti-$N+1$:** Nas listagens de aulas (`/api/aula` e `/api/aula/by-modulo/{moduloId}`), a resolução de conteúdo didático no MongoDB utiliza o método batch `GetByAulaIdsAsync` agrupando os resultados via `ToLookup`, executando uma única query `$in` no cluster NoSQL em vez de $N$ consultas individuais.
+- **Endpoints RESTful com HATEOAS:** Disponíveis em `/api/aula/{aulaId}/conteudo` (`GET`, `POST`, `PUT`, `DELETE`). O `DELETE /api/aula/{id}` no Oracle orquestra a deleção em cascata do documento correspondente no MongoDB Atlas.
+- **Health Checks:** Probe `mongodb` integrada em `/health` e `/health/ready` executando comando `ping` contra o cluster MongoDB Atlas.
 
 ---
 

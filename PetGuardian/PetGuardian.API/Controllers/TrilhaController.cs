@@ -11,8 +11,28 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class TrilhaController(ITrilhaService trilhaService, ILogger<TrilhaController> logger) : ApiControllerBase
+public class TrilhaController(
+    ITrilhaService trilhaService,
+    IUsuarioPetService usuarioPetService,
+    ILogger<TrilhaController> logger) : ApiControllerBase
 {
+    /// <summary>Lista trilhas dos pets do usuário autenticado.</summary>
+    [HttpGet("me")]
+    [HttpGet("/trilhas/me")]
+    [ProducesResponseType(typeof(IReadOnlyList<TrilhaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult GetMyTrilhas()
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        var vinculos = usuarioPetService.GetByUsuarioId(CurrentUserId.Value);
+        var trilhas = vinculos
+            .SelectMany(v => trilhaService.GetByPetId(v.PetId))
+            .DistinctBy(t => t.Id)
+            .Select(ComLinks)
+            .ToList();
+        return Ok(trilhas);
+    }
+
     /// <summary>Lista trilhas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/trilha?page=1&amp;pageSize=10&amp;sortBy=Nome&amp;sortDir=desc&amp;nome=adest</c></remarks>
     [HttpGet]

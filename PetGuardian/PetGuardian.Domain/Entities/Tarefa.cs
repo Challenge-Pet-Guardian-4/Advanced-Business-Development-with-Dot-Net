@@ -81,6 +81,17 @@ public sealed class Tarefa : BaseEntity
         Conclusao = DateTime.UtcNow;
     }
 
+    public void Desmarcar(Guid statusPendenteId)
+    {
+        if (Conclusao is null)
+            throw new DomainException("A tarefa não está concluída para ser desmarcada.");
+        if (statusPendenteId == Guid.Empty)
+            throw new DomainException("O status pendente informado é inválido.");
+
+        Conclusao = null;
+        StatusId = statusPendenteId;
+    }
+
     public void EstenderPrazo(DateTime novoPrazo)
     {
         if (novoPrazo <= DateTime.UtcNow)

@@ -13,5 +13,6 @@ public interface ITarefaService
     TarefaResponse Create(TarefaRequest request);
     TarefaResponse? Update(Guid id, TarefaUpdateRequest request);
     TarefaResponse Concluir(Guid tarefaId, Guid usuarioId);
+    TarefaResponse Desmarcar(Guid tarefaId, Guid usuarioId);
     bool Delete(Guid id);
 }

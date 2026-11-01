@@ -14,6 +14,26 @@ public class TarefaController(
     IUsuarioPetService usuarioPetService,
     ILogger<TarefaController> logger) : ApiControllerBase
 {
+    /// <summary>Lista tarefas do usuário autenticado ou de seus pets.</summary>
+    [HttpGet("me")]
+    [HttpGet("/tarefas/me")]
+    [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult GetMyTarefas([FromQuery] bool? concluida = null)
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        var vinculos = usuarioPetService.GetByUsuarioId(CurrentUserId.Value);
+        var petIds = vinculos.Select(v => v.PetId).ToHashSet();
+
+        var tarefas = tarefaService.GetByUsuarioId(CurrentUserId.Value)
+            .Concat(petIds.SelectMany(tarefaService.GetByPetId))
+            .DistinctBy(t => t.Id)
+            .Where(t => concluida is null || (t.Conclusao is not null) == concluida.Value)
+            .Select(ComLinks)
+            .ToList();
+
+        return Ok(tarefas);
+    }
 
     /// <summary>Lista tarefas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/tarefa?petId={id}&amp;concluida=false&amp;sortBy=Prazo&amp;pageSize=5</c></remarks>
@@ -128,6 +148,7 @@ public class TarefaController(
 
     /// <summary>Conclui a tarefa em nome de um usuário (o próprio usuário do token ou um Admin).</summary>
     [HttpPost("{id:guid}/concluir")]
+    [HttpPatch("{id:guid}/concluir")]
     [ProducesResponseType(typeof(TarefaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -141,6 +162,25 @@ public class TarefaController(
 
         logger.LogInformation("HTTP POST /api/tarefa/{Id}/concluir: Concluindo tarefa pelo Usuário {UsuarioId}.", id, request.UsuarioId);
         return Ok(ComLinks(tarefaService.Concluir(id, request.UsuarioId)));
+    }
+
+    /// <summary>Reverte a conclusão de uma tarefa, voltando-a para PENDENTE.</summary>
+    [HttpPatch("{id:guid}/desmarcar")]
+    [ProducesResponseType(typeof(TarefaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult Desmarcar(Guid id)
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        var existing = tarefaService.GetById(id);
+        if (existing is null) return NotFound();
+
+        if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
+            return Forbid();
+
+        logger.LogInformation("HTTP PATCH /api/tarefa/{Id}/desmarcar: Revertendo tarefa pelo Usuário {UsuarioId}.", id, CurrentUserId.Value);
+        return Ok(ComLinks(tarefaService.Desmarcar(id, CurrentUserId.Value)));
     }
 
     /// <summary>Exclui uma tarefa.</summary>
@@ -186,6 +226,10 @@ public class TarefaController(
         {
             links.Add(LinkTo("update", "PUT", nameof(Update), new { id = t.Id }));
             links.Add(LinkTo("concluir", "POST", nameof(Concluir), new { id = t.Id }));
+        }
+        else
+        {
+            links.Add(LinkTo("desmarcar", "PATCH", nameof(Desmarcar), new { id = t.Id }));
         }
 
         links.Add(LinkTo("delete", "DELETE", nameof(Delete), new { id = t.Id }));

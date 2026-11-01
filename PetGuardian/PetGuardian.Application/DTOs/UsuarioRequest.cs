@@ -4,7 +4,7 @@ using PetGuardian.Domain.Enums;
 
 namespace PetGuardian.Application.DTOs;
 
-/// <summary>Cadastro de usuário com telefone (DDD + número) e endereço (CEP + número) inline, alinhado ao Java.</summary>
+/// <summary>Cadastro de usuário com telefone (DDD + número) e endereço (CEP + número) inline.</summary>
 public record UsuarioRequest(
     [Required][StringLength(100, MinimumLength = 2)] string Nome,
     [Required][EmailAddress][StringLength(50)] string Email,

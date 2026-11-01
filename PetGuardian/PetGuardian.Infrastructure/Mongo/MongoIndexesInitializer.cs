@@ -83,7 +83,7 @@ public sealed class MongoIndexesInitializer(
             }
             catch (MongoCommandException ex) when (ex.Code is 85 or 86)
             {
-                // Índice equivalente já existe no cluster (ex.: criado pelo serviço Java com nome "aula_id")
+                // Índice equivalente já existe no cluster com especificações compatíveis (ex.: "aula_id")
             }
         }
 
