@@ -1,0 +1,930 @@
+{
+  "timestamp": "2026-11-01T03:31:15.193359+00:00",
+  "total": 115,
+  "success": 115,
+  "avg_latency_ms": 104.09913043478261,
+  "min_latency_ms": 24.3,
+  "max_latency_ms": 765.4,
+  "results": [
+    {
+      "verb": "GET",
+      "path": "/health",
+      "status": 200,
+      "latency_ms": 522.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/health/live",
+      "status": 200,
+      "latency_ms": 24.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/health/ready",
+      "status": 200,
+      "latency_ms": 142.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/metrics",
+      "status": 200,
+      "latency_ms": 34.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/swagger/v1/swagger.json",
+      "status": 200,
+      "latency_ms": 360.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/raca",
+      "status": 200,
+      "latency_ms": 47.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/raca/6a37335e-3893-b68e-e065-020c29df5990",
+      "status": 200,
+      "latency_ms": 38.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/raca",
+      "status": 201,
+      "latency_ms": 70.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/raca/3b6b3c41-d8f7-4afb-ae97-eb8ed0d24582",
+      "status": 200,
+      "latency_ms": 79.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/raca/3b6b3c41-d8f7-4afb-ae97-eb8ed0d24582",
+      "status": 204,
+      "latency_ms": 93.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/status",
+      "status": 200,
+      "latency_ms": 25.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/status/6a37335e-3593-b68e-e065-020c29df5990",
+      "status": 200,
+      "latency_ms": 42.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/estado",
+      "status": 200,
+      "latency_ms": 26.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/estado/ff8c1c65-2214-4462-932b-3844c86a4546",
+      "status": 200,
+      "latency_ms": 27.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/estado",
+      "status": 201,
+      "latency_ms": 49.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/estado/02dbd357-8079-480f-b2e9-1001f2b8f9d8",
+      "status": 200,
+      "latency_ms": 84.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/estado/02dbd357-8079-480f-b2e9-1001f2b8f9d8",
+      "status": 204,
+      "latency_ms": 82.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/cidade",
+      "status": 200,
+      "latency_ms": 47.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/cidade/82e778ac-c427-442d-a31b-52b114fa117b",
+      "status": 200,
+      "latency_ms": 46.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/cidade/by-estado/ff8c1c65-2214-4462-932b-3844c86a4546",
+      "status": 200,
+      "latency_ms": 29.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/cidade",
+      "status": 201,
+      "latency_ms": 68.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/cidade/a5ff95be-377a-4a98-ac17-6641b5768de1",
+      "status": 200,
+      "latency_ms": 103.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/cidade/a5ff95be-377a-4a98-ac17-6641b5768de1",
+      "status": 204,
+      "latency_ms": 84.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/bairro",
+      "status": 200,
+      "latency_ms": 50.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/bairro/8e642b1a-b1f8-493b-ae09-fbd117b81a13",
+      "status": 200,
+      "latency_ms": 29.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/bairro/by-cidade/82e778ac-c427-442d-a31b-52b114fa117b",
+      "status": 200,
+      "latency_ms": 26.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/bairro",
+      "status": 201,
+      "latency_ms": 86.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/bairro/1dd752a2-5bed-4681-9966-58d864f9d7f5",
+      "status": 200,
+      "latency_ms": 102.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/bairro/1dd752a2-5bed-4681-9966-58d864f9d7f5",
+      "status": 204,
+      "latency_ms": 83.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/endereco",
+      "status": 200,
+      "latency_ms": 38.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/endereco/794d0408-435b-4df9-83c9-5915ad4a0009",
+      "status": 200,
+      "latency_ms": 29.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/endereco",
+      "status": 201,
+      "latency_ms": 541.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/endereco/56d9525c-3031-42e0-85f8-ab5dd3b07044",
+      "status": 200,
+      "latency_ms": 271.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/endereco/56d9525c-3031-42e0-85f8-ab5dd3b07044",
+      "status": 204,
+      "latency_ms": 91.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/telefone",
+      "status": 200,
+      "latency_ms": 28.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/telefone/40b8f607-10fb-4447-8b3f-4078c75dbbfe",
+      "status": 200,
+      "latency_ms": 28.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/telefone",
+      "status": 201,
+      "latency_ms": 50.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/telefone/ed114cdb-6813-4744-bba1-3298b355ee2d",
+      "status": 200,
+      "latency_ms": 84.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/telefone/ed114cdb-6813-4744-bba1-3298b355ee2d",
+      "status": 204,
+      "latency_ms": 81.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/usuario",
+      "status": 201,
+      "latency_ms": 748.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario",
+      "status": 200,
+      "latency_ms": 60.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 200,
+      "latency_ms": 26.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario/by-email?email=audit_user_1793503866@clyvo.com",
+      "status": 200,
+      "latency_ms": 27.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f/score",
+      "status": 200,
+      "latency_ms": 46.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 200,
+      "latency_ms": 545.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "latency_ms": 483.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "latency_ms": 31.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario/me",
+      "status": 200,
+      "latency_ms": 29.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/usuario/me",
+      "status": 200,
+      "latency_ms": 529.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuario/me/rede-cuidado",
+      "status": 200,
+      "latency_ms": 145.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/api/usuario/me/upgrade-premium",
+      "status": 200,
+      "latency_ms": 90.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/pet",
+      "status": 201,
+      "latency_ms": 70.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/pet",
+      "status": 200,
+      "latency_ms": 52.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/pet/me",
+      "status": 200,
+      "latency_ms": 49.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 31.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/pet/by-raca/6a37335e-3893-b68e-e065-020c29df5990",
+      "status": 200,
+      "latency_ms": 30.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/pet/cd20047c-5681-42a1-96e9-4322e5518e21/historico",
+      "status": 200,
+      "latency_ms": 64.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 128.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/usuario",
+      "status": 201,
+      "latency_ms": 765.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/usuariopet",
+      "status": 201,
+      "latency_ms": 119.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuariopet",
+      "status": 200,
+      "latency_ms": 36.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuariopet/by-usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 200,
+      "latency_ms": 27.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuariopet/by-pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 27.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/usuariopet/rede-cuidado/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 200,
+      "latency_ms": 139.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/usuariopet/invite/by-usuario",
+      "status": 201,
+      "latency_ms": 139.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/usuariopet/7eae5128-69db-45b8-a728-7d1f540aa1af/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 106.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/usuariopet/7eae5128-69db-45b8-a728-7d1f540aa1af/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 204,
+      "latency_ms": 119.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/usuariopet/invite/by-email",
+      "status": 201,
+      "latency_ms": 156.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/usuariopet/7eae5128-69db-45b8-a728-7d1f540aa1af/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 204,
+      "latency_ms": 118.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/tarefa",
+      "status": 201,
+      "latency_ms": 147.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa",
+      "status": 200,
+      "latency_ms": 60.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa/me",
+      "status": 200,
+      "latency_ms": 67.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b",
+      "status": 200,
+      "latency_ms": 29.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa/by-pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 29.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa/by-usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 200,
+      "latency_ms": 40.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/tarefa/by-status/6a37335e-3593-b68e-e065-020c29df5990",
+      "status": 200,
+      "latency_ms": 29.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b",
+      "status": 200,
+      "latency_ms": 103.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b/concluir",
+      "status": 200,
+      "latency_ms": 154.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b/desmarcar",
+      "status": 200,
+      "latency_ms": 138.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b/concluir",
+      "status": 200,
+      "latency_ms": 160.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/tarefa/187a8fd1-8a65-4b49-ac8f-df02a056068b",
+      "status": 204,
+      "latency_ms": 104.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/historico",
+      "status": 201,
+      "latency_ms": 64.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/historico",
+      "status": 200,
+      "latency_ms": 52.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/historico/63718440-d82b-4577-a0bb-177eef8f1b09",
+      "status": 200,
+      "latency_ms": 29.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/historico/by-pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 28.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/historico/63718440-d82b-4577-a0bb-177eef8f1b09",
+      "status": 200,
+      "latency_ms": 107.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/historico/63718440-d82b-4577-a0bb-177eef8f1b09",
+      "status": 204,
+      "latency_ms": 81.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/trilha",
+      "status": 201,
+      "latency_ms": 65.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/trilha",
+      "status": 200,
+      "latency_ms": 55.9,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/trilha/me",
+      "status": 200,
+      "latency_ms": 45.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/trilha/3ea3b3ce-c211-469c-9e50-46bb3b968de6",
+      "status": 200,
+      "latency_ms": 27.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/trilha/by-pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 200,
+      "latency_ms": 25.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/trilha/3ea3b3ce-c211-469c-9e50-46bb3b968de6",
+      "status": 200,
+      "latency_ms": 89.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/modulo",
+      "status": 201,
+      "latency_ms": 63.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/modulo",
+      "status": 200,
+      "latency_ms": 53.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/modulo/4ec49257-a81b-43db-b81f-3b32e2ef7b64",
+      "status": 200,
+      "latency_ms": 27.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/modulo/by-trilha/3ea3b3ce-c211-469c-9e50-46bb3b968de6",
+      "status": 200,
+      "latency_ms": 24.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/modulo/4ec49257-a81b-43db-b81f-3b32e2ef7b64",
+      "status": 200,
+      "latency_ms": 80.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/aula",
+      "status": 201,
+      "latency_ms": 67.7,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/aula",
+      "status": 200,
+      "latency_ms": 69.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967",
+      "status": 200,
+      "latency_ms": 44.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/aula/by-modulo/4ec49257-a81b-43db-b81f-3b32e2ef7b64",
+      "status": 200,
+      "latency_ms": 47.8,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967",
+      "status": 200,
+      "latency_ms": 102.0,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/concluir",
+      "status": 200,
+      "latency_ms": 100.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/desmarcar",
+      "status": 200,
+      "latency_ms": 99.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "POST",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/conteudo",
+      "status": 201,
+      "latency_ms": 80.1,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "GET",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/conteudo",
+      "status": 200,
+      "latency_ms": 31.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "PUT",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/conteudo",
+      "status": 200,
+      "latency_ms": 74.2,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967/conteudo",
+      "status": 204,
+      "latency_ms": 56.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/aula/c04f0255-30a7-4e0d-85de-2b1fc9664967",
+      "status": 204,
+      "latency_ms": 103.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/modulo/4ec49257-a81b-43db-b81f-3b32e2ef7b64",
+      "status": 204,
+      "latency_ms": 79.5,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/trilha/3ea3b3ce-c211-469c-9e50-46bb3b968de6",
+      "status": 204,
+      "latency_ms": 79.3,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/pet/cd20047c-5681-42a1-96e9-4322e5518e21",
+      "status": 204,
+      "latency_ms": 79.4,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/usuario/7eae5128-69db-45b8-a728-7d1f540aa1af",
+      "status": 204,
+      "latency_ms": 81.6,
+      "success": true,
+      "detail": "OK"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/api/usuario/baad6fc2-56aa-491a-a692-64e45fc6f55f",
+      "status": 204,
+      "latency_ms": 84.2,
+      "success": true,
+      "detail": "OK"
+    }
+  ]
+}
