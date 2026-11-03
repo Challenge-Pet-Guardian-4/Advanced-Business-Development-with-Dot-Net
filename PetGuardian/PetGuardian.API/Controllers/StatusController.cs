@@ -8,32 +8,20 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class StatusController(IStatusService statusService, ILogger<StatusController> logger) : ApiControllerBase
+public class StatusController(IStatusService statusService) : ApiControllerBase
 {
     /// <summary>Lista todos os registros de status cadastrados.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<StatusResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
-    {
-        logger.LogInformation("HTTP GET /api/status: Listando todos os status.");
-        return Ok(statusService.GetAll().Select(ComLinks).ToList());
-    }
+    public IActionResult GetAll() =>
+        Ok(statusService.GetAll().Select(ComLinks).ToList());
 
     /// <summary>Obtém um registro de status pelo seu identificador único (ID).</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(StatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/status/{Id}: Buscando status.", id);
-        var status = statusService.GetById(id);
-        if (status is null)
-        {
-            logger.LogWarning("HTTP GET /api/status/{Id}: Status não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(status));
-    }
+    public IActionResult GetById(Guid id) =>
+        statusService.GetById(id) is { } status ? Ok(ComLinks(status)) : NotFound();
 
     /// <summary>Cadastra um novo registro de status na base de dados.</summary>
     [HttpPost]
@@ -41,9 +29,7 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] StatusRequest request)
     {
-        logger.LogInformation("HTTP POST /api/status: Cadastrando status '{Nome}'.", request.NomeStatus);
         var created = statusService.Create(request);
-        logger.LogInformation("HTTP POST /api/status: Status {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -52,34 +38,15 @@ public class StatusController(IStatusService statusService, ILogger<StatusContro
     [ProducesResponseType(typeof(StatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] StatusRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/status/{Id}: Atualizando status '{Nome}'.", id, request.NomeStatus);
-        var updated = statusService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/status/{Id}: Status não encontrado para atualização.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP PUT /api/status/{Id}: Status atualizado com sucesso.", id);
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] StatusRequest request) =>
+        statusService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Exclui um registro de status cadastrado pelo seu ID.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/status/{Id}: Excluindo status.", id);
-        if (!statusService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/status/{Id}: Status não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP DELETE /api/status/{Id}: Status excluído com sucesso.", id);
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        statusService.Delete(id) ? NoContent() : NotFound();
 
     private StatusResponse ComLinks(StatusResponse s) => s with
     {

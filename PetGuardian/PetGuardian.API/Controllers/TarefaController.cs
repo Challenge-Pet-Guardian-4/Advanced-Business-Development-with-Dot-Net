@@ -11,28 +11,16 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class TarefaController(
     ITarefaService tarefaService,
-    IUsuarioPetService usuarioPetService,
-    ILogger<TarefaController> logger) : ApiControllerBase
+    IUsuarioPetService usuarioPetService) : ApiControllerBase
 {
     /// <summary>Lista tarefas do usuário autenticado ou de seus pets.</summary>
     [HttpGet("me")]
     [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult GetMyTarefas([FromQuery] bool? concluida = null)
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        var vinculos = usuarioPetService.GetByUsuarioId(CurrentUserId.Value);
-        var petIds = vinculos.Select(v => v.PetId).ToHashSet();
-
-        var tarefas = tarefaService.GetByUsuarioId(CurrentUserId.Value)
-            .Concat(petIds.SelectMany(tarefaService.GetByPetId))
-            .DistinctBy(t => t.Id)
-            .Where(t => concluida is null || (t.Conclusao is not null) == concluida.Value)
-            .Select(ComLinks)
-            .ToList();
-
-        return Ok(tarefas);
-    }
+    public IActionResult GetMyTarefas([FromQuery] bool? concluida = null) =>
+        CurrentUserId is { } userId
+            ? Ok(tarefaService.GetMinhasTarefas(userId, concluida).Select(ComLinks).ToList())
+            : Unauthorized();
 
     /// <summary>Lista tarefas com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     /// <remarks>Exemplo: <c>/api/tarefa?petId={id}&amp;concluida=false&amp;sortBy=Prazo&amp;pageSize=5</c></remarks>
@@ -41,9 +29,7 @@ public class TarefaController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] TarefaFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/tarefa: pesquisando tarefas (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
         var resultado = tarefaService.Search(query, filter);
-
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
@@ -64,44 +50,26 @@ public class TarefaController(
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(TarefaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/tarefa/{Id}: Buscando tarefa.", id);
-        var t = tarefaService.GetById(id);
-        if (t is null)
-        {
-            logger.LogWarning("HTTP GET /api/tarefa/{Id}: Tarefa não encontrada.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(t));
-    }
+    public IActionResult GetById(Guid id) =>
+        tarefaService.GetById(id) is { } t ? Ok(ComLinks(t)) : NotFound();
 
     /// <summary>Lista tarefas de um pet.</summary>
     [HttpGet("by-pet/{petId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByPet(Guid petId)
-    {
-        logger.LogInformation("HTTP GET /api/tarefa/by-pet/{PetId}: Buscando tarefas por pet.", petId);
-        return Ok(tarefaService.GetByPetId(petId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByPet(Guid petId) =>
+        Ok(tarefaService.GetByPetId(petId).Select(ComLinks).ToList());
 
     /// <summary>Lista tarefas de um usuário.</summary>
     [HttpGet("by-usuario/{usuarioId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByUsuario(Guid usuarioId)
-    {
-        logger.LogInformation("HTTP GET /api/tarefa/by-usuario/{UsuarioId}: Buscando tarefas por usuário.", usuarioId);
-        return Ok(tarefaService.GetByUsuarioId(usuarioId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByUsuario(Guid usuarioId) =>
+        Ok(tarefaService.GetByUsuarioId(usuarioId).Select(ComLinks).ToList());
 
     /// <summary>Lista tarefas por status.</summary>
     [HttpGet("by-status/{statusId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<TarefaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByStatus(Guid statusId)
-    {
-        logger.LogInformation("HTTP GET /api/tarefa/by-status/{StatusId}: Buscando tarefas por status.", statusId);
-        return Ok(tarefaService.GetByStatusId(statusId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByStatus(Guid statusId) =>
+        Ok(tarefaService.GetByStatusId(statusId).Select(ComLinks).ToList());
 
     /// <summary>Cadastra uma nova tarefa.</summary>
     [HttpPost]
@@ -109,7 +77,6 @@ public class TarefaController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] TarefaRequest request)
     {
-        logger.LogInformation("HTTP POST /api/tarefa: Cadastrando tarefa '{Titulo}' para Pet {PetId}.", request.Titulo, request.PetId);
         var created = tarefaService.Create(request);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
@@ -122,27 +89,13 @@ public class TarefaController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(Guid id, [FromBody] TarefaUpdateRequest request)
     {
-        logger.LogInformation("HTTP PUT /api/tarefa/{Id}: Atualizando tarefa '{Titulo}'.", id, request.Titulo);
-        var existing = tarefaService.GetById(id);
-        if (existing is null)
-        {
-            logger.LogWarning("HTTP PUT /api/tarefa/{Id}: Tarefa não encontrada para atualização.", id);
+        if (tarefaService.GetById(id) is not { } existing)
             return NotFound();
-        }
 
         if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
-        {
-            logger.LogWarning("HTTP PUT /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
             return Forbid();
-        }
 
-        var updated = tarefaService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/tarefa/{Id}: Tarefa não encontrada para atualização.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
+        return Ok(ComLinks(tarefaService.Update(id, request)!));
     }
 
     /// <summary>Conclui a tarefa em nome de um usuário (o próprio usuário do token ou um Admin).</summary>
@@ -151,17 +104,10 @@ public class TarefaController(
     [ProducesResponseType(typeof(TarefaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public IActionResult Concluir(Guid id, [FromBody] TarefaConcluirRequest request)
-    {
-        if (!IsSelfOrAdmin(request.UsuarioId))
-        {
-            logger.LogWarning("HTTP POST /api/tarefa/{Id}/concluir: usuário do token não pode concluir em nome de {UsuarioId}.", id, request.UsuarioId);
-            return Forbid();
-        }
-
-        logger.LogInformation("HTTP POST /api/tarefa/{Id}/concluir: Concluindo tarefa pelo Usuário {UsuarioId}.", id, request.UsuarioId);
-        return Ok(ComLinks(tarefaService.Concluir(id, request.UsuarioId)));
-    }
+    public IActionResult Concluir(Guid id, [FromBody] TarefaConcluirRequest request) =>
+        IsSelfOrAdmin(request.UsuarioId)
+            ? Ok(ComLinks(tarefaService.Concluir(id, request.UsuarioId)))
+            : Forbid();
 
     /// <summary>Reverte a conclusão de uma tarefa, voltando-a para PENDENTE.</summary>
     [HttpPatch("{id:guid}/desmarcar")]
@@ -171,15 +117,15 @@ public class TarefaController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Desmarcar(Guid id)
     {
-        if (CurrentUserId is null) return Unauthorized();
-        var existing = tarefaService.GetById(id);
-        if (existing is null) return NotFound();
+        if (CurrentUserId is not { } userId)
+            return Unauthorized();
 
-        if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
-            return Forbid();
+        if (tarefaService.GetById(id) is not { } existing)
+            return NotFound();
 
-        logger.LogInformation("HTTP PATCH /api/tarefa/{Id}/desmarcar: Revertendo tarefa pelo Usuário {UsuarioId}.", id, CurrentUserId.Value);
-        return Ok(ComLinks(tarefaService.Desmarcar(id, CurrentUserId.Value)));
+        return CanAccessPetCareCircle(usuarioPetService, existing.PetId)
+            ? Ok(ComLinks(tarefaService.Desmarcar(id, userId)))
+            : Forbid();
     }
 
     /// <summary>Exclui uma tarefa.</summary>
@@ -189,25 +135,13 @@ public class TarefaController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
-        logger.LogInformation("HTTP DELETE /api/tarefa/{Id}: Excluindo tarefa.", id);
-        var existing = tarefaService.GetById(id);
-        if (existing is null)
-        {
-            logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: Tarefa não encontrada para exclusão.", id);
+        if (tarefaService.GetById(id) is not { } existing)
             return NotFound();
-        }
 
         if (!CanAccessPetCareCircle(usuarioPetService, existing.PetId))
-        {
-            logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", id, CurrentUserId, existing.PetId);
             return Forbid();
-        }
 
-        if (!tarefaService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/tarefa/{Id}: Tarefa não encontrada para exclusão.", id);
-            return NotFound();
-        }
+        tarefaService.Delete(id);
         return NoContent();
     }
 

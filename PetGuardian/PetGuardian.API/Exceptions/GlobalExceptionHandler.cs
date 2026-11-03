@@ -40,7 +40,6 @@ public sealed class GlobalExceptionHandler(
             Instance = httpContext.Request.Path
         };
 
-        // Rastreabilidade padronizada para diagnóstico (W3C OpenTelemetry / Kestrel)
         problem.Extensions["traceId"] = traceId;
 
         if (httpContext.Request.Headers.TryGetValue(CorrelationIdMiddleware.CorrelationHeader, out var correlationId)
@@ -58,7 +57,6 @@ public sealed class GlobalExceptionHandler(
         IHostEnvironment environment) => exception switch
     {
         DomainException e             => (StatusCodes.Status400BadRequest,  "Regra de negócio violada",             e.Message),
-        ArgumentNullException e       => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
         ArgumentException e           => (StatusCodes.Status400BadRequest,  "Requisição inválida",                  e.Message),
         KeyNotFoundException e        => (StatusCodes.Status404NotFound,    "Recurso não encontrado",               e.Message),
         InvalidOperationException e when e.Message.Contains("não encontrad", StringComparison.OrdinalIgnoreCase)

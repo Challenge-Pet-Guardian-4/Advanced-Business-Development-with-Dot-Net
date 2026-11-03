@@ -1,164 +1,106 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using PetGuardian.Application.DTOs;
 using PetGuardian.Application.Repositories;
 using PetGuardian.Application.Services.Interfaces;
+using PetGuardian.Domain.Common;
 using PetGuardian.Domain.Entities;
 
 namespace PetGuardian.Application.Services.Implementations;
 
 /// <summary>
-/// Serviço de orquestração de endereços com resolução automática via IViaCepService e logging estruturado.
+/// Serviço de orquestração de endereços com resolução automática via IViaCepService.
 /// </summary>
 public sealed class EnderecoService(
-    IRepository<Endereco>     enderecoRepository,
-    IRepository<Bairro>       bairroRepository,
-    IRepository<Cidade>       cidadeRepository,
-    IRepository<Estado>       estadoRepository,
-    IViaCepService            viaCepService,
-    ILogger<EnderecoService>  logger) : IEnderecoService
+    IRepository<Endereco>    enderecoRepository,
+    IRepository<Bairro>      bairroRepository,
+    IRepository<Cidade>      cidadeRepository,
+    IRepository<Estado>      estadoRepository,
+    IViaCepService           viaCepService,
+    ILogger<EnderecoService> logger,
+    IUnitOfWork?             unitOfWork = null) : IEnderecoService
 {
-    public IReadOnlyList<EnderecoResponse> GetAll()
-    {
-        logger.LogInformation("Buscando todos os endereços cadastrados.");
-        return enderecoRepository.GetAll().Select(EnderecoResponse.FromDomain).ToList();
-    }
+    public IReadOnlyList<EnderecoResponse> GetAll() =>
+        enderecoRepository.GetAll().Select(EnderecoResponse.FromDomain).ToList();
 
-    public EnderecoResponse? GetById(Guid id)
-    {
-        logger.LogInformation("Buscando endereço por ID: {EnderecoId}", id);
-        var e = enderecoRepository.GetById(id);
-        if (e is null)
-            logger.LogWarning("Endereço com ID {EnderecoId} não encontrado.", id);
-
-        return e is null ? null : EnderecoResponse.FromDomain(e);
-    }
+    public EnderecoResponse? GetById(Guid id) =>
+        enderecoRepository.GetById(id) is { } e ? EnderecoResponse.FromDomain(e) : null;
 
     public EnderecoResponse Create(EnderecoRequest request)
     {
-        logger.LogInformation("Iniciando criação de endereço para CEP: {Cep}, Número: {Numero}", request.Cep, request.Numero);
-        var resolved = ResolveAddress(request.Cep);
-        var endereco = FindOrCreateByCepAndNumero(request.Cep, request.Numero, resolved.Rua, resolved.Bairro.Id);
-        logger.LogInformation("Endereço {EnderecoId} cadastrado/resolvido com sucesso para o CEP: {Cep}", endereco.Id, request.Cep);
-        return EnderecoResponse.FromDomain(endereco);
+        var cepLimpo = LimparCep(request.Cep);
+        var cepInfo = ConsultarCep(cepLimpo);
+
+        return unitOfWork.RunInTransaction(() =>
+        {
+            var (rua, bairro) = PersistirHierarquia(cepInfo);
+            var numeroLimpo = request.Numero.Trim();
+            var endereco = ObterOuCriar(
+                enderecoRepository,
+                e => e.Cep == cepLimpo && e.Numero == numeroLimpo && e.BairroId == bairro.Id,
+                () => new Endereco(cepLimpo, rua, numeroLimpo, bairro.Id));
+
+            logger.LogInformation("Endereço {EnderecoId} resolvido para o CEP {Cep}.", endereco.Id, cepLimpo);
+            return EnderecoResponse.FromDomain(endereco);
+        });
     }
 
     public EnderecoResponse? Update(Guid id, EnderecoRequest request)
     {
-        logger.LogInformation("Iniciando atualização do endereço: {EnderecoId}", id);
         var endereco = enderecoRepository.GetById(id);
         if (endereco is null)
-        {
-            logger.LogWarning("Tentativa de atualizar endereço inexistente: {EnderecoId}", id);
             return null;
-        }
 
-        var resolved = ResolveAddress(request.Cep);
-        var cepLimpo = request.Cep.Trim().Replace("-", "");
-        endereco.Atualizar(cepLimpo, resolved.Rua, request.Numero.Trim(), resolved.Bairro.Id);
-        enderecoRepository.Update(endereco);
-        logger.LogInformation("Endereço {EnderecoId} atualizado com sucesso.", id);
-        return EnderecoResponse.FromDomain(endereco);
-    }
+        var cepLimpo = LimparCep(request.Cep);
+        var cepInfo = ConsultarCep(cepLimpo);
 
-    public bool Delete(Guid id)
-    {
-        logger.LogInformation("Iniciando exclusão do endereço: {EnderecoId}", id);
-        var removido = enderecoRepository.Delete(id);
-        if (removido)
-            logger.LogInformation("Endereço {EnderecoId} removido com sucesso.", id);
-        else
-            logger.LogWarning("Tentativa de exclusão de endereço inexistente: {EnderecoId}", id);
-
-        return removido;
-    }
-
-    private (string Rua, Bairro Bairro) ResolveAddress(string cep)
-    {
-        var cepLimpo = cep.Trim().Replace("-", "");
-        var cepInfo = viaCepService.ConsultarCepAsync(cepLimpo).GetAwaiter().GetResult();
-        if (cepInfo is null)
+        return unitOfWork.RunInTransaction(() =>
         {
-            logger.LogWarning("Resolução de endereço falhou: CEP {Cep} não encontrado no ViaCEP.", cepLimpo);
-            throw new InvalidOperationException($"CEP {cepLimpo} não encontrado.");
-        }
+            var (rua, bairro) = PersistirHierarquia(cepInfo);
+            endereco.Atualizar(cepLimpo, rua, request.Numero.Trim(), bairro.Id);
+            enderecoRepository.Update(endereco);
+            return EnderecoResponse.FromDomain(endereco);
+        });
+    }
 
-        var estadoNome = cepInfo.Estado ?? cepInfo.Uf ?? throw new InvalidOperationException("Estado não informado na resposta do CEP.");
-        var cidadeNome = cepInfo.Localidade ?? throw new InvalidOperationException("Cidade não informada na resposta do CEP.");
-        var bairroNome = cepInfo.Bairro ?? throw new InvalidOperationException("Bairro não informado na resposta do CEP.");
-        var ruaNome = cepInfo.Logradouro ?? string.Empty;
+    public bool Delete(Guid id) => enderecoRepository.Delete(id);
 
-        var estado = FindOrCreateEstado(estadoNome);
-        var cidade = FindOrCreateCidade(cidadeNome, estado.Id);
-        var bairro = FindOrCreateBairro(bairroNome, cidade.Id);
+    private static string LimparCep(string cep) => cep.Trim().Replace("-", "");
+
+    private ViaCepResponseDto ConsultarCep(string cepLimpo) =>
+        Task.Run(() => viaCepService.ConsultarCepAsync(cepLimpo)).GetAwaiter().GetResult()
+        ?? throw new InvalidOperationException($"CEP {cepLimpo} não encontrado.");
+
+    private (string Rua, Bairro Bairro) PersistirHierarquia(ViaCepResponseDto cepInfo)
+    {
+        var estadoNome = (cepInfo.Estado ?? cepInfo.Uf ?? throw new InvalidOperationException("Estado não informado na resposta do CEP.")).Trim();
+        var cidadeNome = (cepInfo.Localidade ?? throw new InvalidOperationException("Cidade não informada na resposta do CEP.")).Trim();
+        var bairroNome = (cepInfo.Bairro ?? throw new InvalidOperationException("Bairro não informado na resposta do CEP.")).Trim();
+        var ruaNome    = cepInfo.Logradouro ?? string.Empty;
+
+        var estadoLower = estadoNome.ToLowerInvariant();
+        var estado = ObterOuCriar(estadoRepository, e => e.NomeEstado.ToLower() == estadoLower, () => new Estado(estadoNome));
+
+        var cidadeLower = cidadeNome.ToLowerInvariant();
+        var cidade = ObterOuCriar(cidadeRepository, c => c.NomeCidade.ToLower() == cidadeLower && c.EstadoId == estado.Id, () => new Cidade(cidadeNome, estado.Id));
+
+        var bairroLower = bairroNome.ToLowerInvariant();
+        var bairro = ObterOuCriar(bairroRepository, b => b.NomeBairro.ToLower() == bairroLower && b.CidadeId == cidade.Id, () => new Bairro(bairroNome, cidade.Id));
 
         return (ruaNome, bairro);
     }
 
-    private Endereco FindOrCreateByCepAndNumero(string cep, string numero, string rua, Guid bairroId)
+    private static T ObterOuCriar<T>(
+        IRepository<T> repo,
+        Expression<Func<T, bool>> filtro,
+        Func<T> fabrica) where T : BaseEntity
     {
-        var cepLimpo = cep.Trim().Replace("-", "");
-        var numeroLimpo = numero.Trim();
+        var existente = repo.FirstOrDefault(filtro);
+        if (existente is not null)
+            return existente;
 
-        var endereco = enderecoRepository.FirstOrDefault(e =>
-            e.Cep == cepLimpo && e.Numero == numeroLimpo && e.BairroId == bairroId);
-
-        if (endereco is null)
-        {
-            endereco = new Endereco(cepLimpo, rua, numeroLimpo, bairroId);
-            enderecoRepository.Add(endereco);
-            logger.LogInformation("Novo registro de endereço persistido no banco: {EnderecoId} (CEP: {Cep})", endereco.Id, cepLimpo);
-        }
-
-        return endereco;
-    }
-
-    private Estado FindOrCreateEstado(string nomeEstado)
-    {
-        var nomeNormalizado = nomeEstado.Trim();
-        var nomeLower = nomeNormalizado.ToLower();
-        var estado = estadoRepository.FirstOrDefault(e => e.NomeEstado.ToLower() == nomeLower);
-
-        if (estado is null)
-        {
-            estado = new Estado(nomeNormalizado);
-            estadoRepository.Add(estado);
-            logger.LogInformation("Novo Estado persistido: {NomeEstado}", nomeNormalizado);
-        }
-
-        return estado;
-    }
-
-    private Cidade FindOrCreateCidade(string nomeCidade, Guid estadoId)
-    {
-        var nomeNormalizado = nomeCidade.Trim();
-        var nomeLower = nomeNormalizado.ToLower();
-        var cidade = cidadeRepository.FirstOrDefault(c =>
-            c.NomeCidade.ToLower() == nomeLower && c.EstadoId == estadoId);
-
-        if (cidade is null)
-        {
-            cidade = new Cidade(nomeNormalizado, estadoId);
-            cidadeRepository.Add(cidade);
-            logger.LogInformation("Nova Cidade persistida: {NomeCidade}", nomeNormalizado);
-        }
-
-        return cidade;
-    }
-
-    private Bairro FindOrCreateBairro(string nomeBairro, Guid cidadeId)
-    {
-        var nomeNormalizado = nomeBairro.Trim();
-        var nomeLower = nomeNormalizado.ToLower();
-        var bairro = bairroRepository.FirstOrDefault(b =>
-            b.NomeBairro.ToLower() == nomeLower && b.CidadeId == cidadeId);
-
-        if (bairro is null)
-        {
-            bairro = new Bairro(nomeNormalizado, cidadeId);
-            bairroRepository.Add(bairro);
-            logger.LogInformation("Novo Bairro persistido: {NomeBairro}", nomeNormalizado);
-        }
-
-        return bairro;
+        var novo = fabrica();
+        repo.Add(novo);
+        return novo;
     }
 }

@@ -8,41 +8,26 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class BairroController(IBairroService bairroService, ILogger<BairroController> logger) : ApiControllerBase
+public class BairroController(IBairroService bairroService) : ApiControllerBase
 {
     /// <summary>Lista todos os bairros.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<BairroResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
-    {
-        logger.LogInformation("HTTP GET /api/bairro: Listando todos os bairros.");
-        return Ok(bairroService.GetAll().Select(ComLinks).ToList());
-    }
+    public IActionResult GetAll() =>
+        Ok(bairroService.GetAll().Select(ComLinks).ToList());
 
     /// <summary>Obtém um bairro pelo Id.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(BairroResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/bairro/{Id}: Buscando bairro.", id);
-        var bairro = bairroService.GetById(id);
-        if (bairro is null)
-        {
-            logger.LogWarning("HTTP GET /api/bairro/{Id}: Bairro não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(bairro));
-    }
+    public IActionResult GetById(Guid id) =>
+        bairroService.GetById(id) is { } bairro ? Ok(ComLinks(bairro)) : NotFound();
 
     /// <summary>Lista bairros de uma cidade.</summary>
     [HttpGet("by-cidade/{cidadeId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<BairroResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByCidade(Guid cidadeId)
-    {
-        logger.LogInformation("HTTP GET /api/bairro/by-cidade/{CidadeId}: Buscando bairros por cidade.", cidadeId);
-        return Ok(bairroService.GetByCidadeId(cidadeId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByCidade(Guid cidadeId) =>
+        Ok(bairroService.GetByCidadeId(cidadeId).Select(ComLinks).ToList());
 
     /// <summary>Cria um bairro.</summary>
     [HttpPost]
@@ -50,9 +35,7 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] BairroRequest request)
     {
-        logger.LogInformation("HTTP POST /api/bairro: Cadastrando bairro '{Nome}' na Cidade {CidadeId}.", request.NomeBairro, request.CidadeId);
         var created = bairroService.Create(request);
-        logger.LogInformation("HTTP POST /api/bairro: Bairro {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -61,34 +44,15 @@ public class BairroController(IBairroService bairroService, ILogger<BairroContro
     [ProducesResponseType(typeof(BairroResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] BairroRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/bairro/{Id}: Atualizando bairro '{Nome}'.", id, request.NomeBairro);
-        var updated = bairroService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/bairro/{Id}: Bairro não encontrado para atualização.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP PUT /api/bairro/{Id}: Bairro atualizado com sucesso.", id);
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] BairroRequest request) =>
+        bairroService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Remove um bairro pelo Id.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/bairro/{Id}: Excluindo bairro.", id);
-        if (!bairroService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/bairro/{Id}: Bairro não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP DELETE /api/bairro/{Id}: Bairro excluído com sucesso.", id);
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        bairroService.Delete(id) ? NoContent() : NotFound();
 
     private BairroResponse ComLinks(BairroResponse b) => b with
     {

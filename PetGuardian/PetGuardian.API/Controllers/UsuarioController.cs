@@ -14,20 +14,17 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class UsuarioController(
     IUsuarioService usuarioService,
-    IUsuarioPetService usuarioPetService,
-    ILogger<UsuarioController> logger) : ApiControllerBase
+    IUsuarioPetService usuarioPetService) : ApiControllerBase
 {
     /// <summary>Obtém o perfil do usuário autenticado através do token JWT.</summary>
     [HttpGet("me")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetMe()
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        var u = usuarioService.GetById(CurrentUserId.Value);
-        return u is null ? NotFound() : Ok(ComLinks(u));
-    }
+    public IActionResult GetMe() =>
+        CurrentUserId is not { } userId
+            ? Unauthorized()
+            : usuarioService.GetById(userId) is { } u ? Ok(ComLinks(u)) : NotFound();
 
     /// <summary>Atualiza o perfil do próprio usuário autenticado.</summary>
     [HttpPut("me")]
@@ -35,34 +32,29 @@ public class UsuarioController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult UpdateMe([FromBody] UsuarioUpdateRequest request)
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        var updated = usuarioService.Update(CurrentUserId.Value, request);
-        return updated is null ? NotFound() : Ok(ComLinks(updated));
-    }
+    public IActionResult UpdateMe([FromBody] UsuarioUpdateRequest request) =>
+        CurrentUserId is not { } userId
+            ? Unauthorized()
+            : usuarioService.Update(userId, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Rede de cuidado colaborativo do usuário autenticado.</summary>
     [HttpGet("me/rede-cuidado")]
     [ProducesResponseType(typeof(RedeCuidadoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult GetMyRedeCuidado()
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        return Ok(usuarioPetService.GetRedeCuidadoByUsuarioId(CurrentUserId.Value));
-    }
+    public IActionResult GetMyRedeCuidado() =>
+        CurrentUserId is { } userId
+            ? Ok(usuarioPetService.GetRedeCuidadoByUsuarioId(userId))
+            : Unauthorized();
 
     /// <summary>Atualiza o usuário autenticado para o perfil Premium.</summary>
     [HttpPatch("me/upgrade-premium")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult UpgradePremium()
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        var updated = usuarioService.UpgradePremium(CurrentUserId.Value);
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult UpgradePremium() =>
+        CurrentUserId is { } userId
+            ? Ok(ComLinks(usuarioService.UpgradePremium(userId)))
+            : Unauthorized();
 
     /// <summary>Lista usuários com paginação, ordenação e filtros (somente Admin).</summary>
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -72,9 +64,7 @@ public class UsuarioController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] UsuarioFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/usuario: pesquisando usuários (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
         var resultado = usuarioService.Search(query, filter);
-
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
@@ -91,43 +81,21 @@ public class UsuarioController(
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/usuario/{Id}: Buscando usuário.", id);
-        var u = usuarioService.GetById(id);
-        if (u is null)
-        {
-            logger.LogWarning("HTTP GET /api/usuario/{Id}: Usuário não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(u));
-    }
+    public IActionResult GetById(Guid id) =>
+        usuarioService.GetById(id) is { } u ? Ok(ComLinks(u)) : NotFound();
 
     /// <summary>Obtém um usuário pelo e-mail.</summary>
     [HttpGet("by-email")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetByEmail([FromQuery] string email)
-    {
-        logger.LogInformation("HTTP GET /api/usuario/by-email: Buscando usuário por e-mail {Email}.", email);
-        var u = usuarioService.GetByEmail(email);
-        if (u is null)
-        {
-            logger.LogWarning("HTTP GET /api/usuario/by-email: Usuário com e-mail {Email} não encontrado.", email);
-            return NotFound();
-        }
-        return Ok(ComLinks(u));
-    }
+    public IActionResult GetByEmail([FromQuery] string email) =>
+        usuarioService.GetByEmail(email) is { } u ? Ok(ComLinks(u)) : NotFound();
 
     /// <summary>Score cumulativo do usuário (usuário inexistente retorna 400 via GlobalExceptionHandler).</summary>
     [HttpGet("{id:guid}/score")]
     [ProducesResponseType(typeof(UsuarioScoreResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult GetScore(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/usuario/{Id}/score: Buscando score do usuário.", id);
-        return Ok(usuarioService.GetScore(id));
-    }
+    public IActionResult GetScore(Guid id) => Ok(usuarioService.GetScore(id));
 
     /// <summary>
     /// Cadastro (anônimo, é a tela de sign-up). Criar perfil Admin exige um token Admin.
@@ -139,16 +107,10 @@ public class UsuarioController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult Create([FromBody] UsuarioRequest request)
     {
-        logger.LogInformation("HTTP POST /api/usuario: Iniciando cadastro do usuário '{Nome}' ({Email}).", request.Nome, request.Email);
-
         if (!IsAdmin && request.Role != RoleUsuario.Comum)
-        {
-            logger.LogWarning("HTTP POST /api/usuario: tentativa de criar usuário com perfil {Role} sem privilégio de administrador ({Email}).", request.Role, request.Email);
             return Forbid();
-        }
 
         var created = usuarioService.Create(request);
-        logger.LogInformation("HTTP POST /api/usuario: Usuário {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -161,19 +123,9 @@ public class UsuarioController(
     public IActionResult Update(Guid id, [FromBody] UsuarioUpdateRequest request)
     {
         if (!IsSelfOrAdmin(id) || (request.Role == RoleUsuario.Admin && !IsAdmin))
-        {
-            logger.LogWarning("HTTP PUT /api/usuario/{Id}: operação negada ao usuário {CurrentUserId}.", id, CurrentUserId);
             return Forbid();
-        }
 
-        logger.LogInformation("HTTP PUT /api/usuario/{Id}: Atualizando usuário '{Nome}'.", id, request.Nome);
-        var updated = usuarioService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/usuario/{Id}: Usuário não encontrado para atualização.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
+        return usuarioService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
     }
 
     /// <summary>Exclui um usuário (o próprio usuário ou Admin).</summary>
@@ -186,13 +138,7 @@ public class UsuarioController(
         if (!IsSelfOrAdmin(id))
             return Forbid();
 
-        logger.LogInformation("HTTP DELETE /api/usuario/{Id}: Excluindo usuário.", id);
-        if (!usuarioService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/usuario/{Id}: Usuário não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        return NoContent();
+        return usuarioService.Delete(id) ? NoContent() : NotFound();
     }
 
     private UsuarioResponse ComLinks(UsuarioResponse u) => u with

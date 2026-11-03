@@ -66,27 +66,19 @@ public sealed class MongoIndexesInitializer(
     private async Task CriarIndicesConteudosAsync(CancellationToken stoppingToken)
     {
         var colecao = database.GetCollection<ConteudoAulaDocument>(options.Value.ConteudosAulaCollection);
-        var keys = Builders<ConteudoAulaDocument>.IndexKeys;
+        var model = new CreateIndexModel<ConteudoAulaDocument>(
+            Builders<ConteudoAulaDocument>.IndexKeys.Ascending(d => d.AulaId),
+            new CreateIndexOptions { Unique = true, Name = "idx_aula_id_unique" });
 
-        CreateIndexModel<ConteudoAulaDocument>[] models =
-        [
-            new(keys.Ascending(d => d.AulaId), new CreateIndexOptions { Unique = true, Name = "idx_aula_id_unique" }),
-            new(keys.Text(d => d.CorpoMarkdown), new CreateIndexOptions { Name = "idx_busca_textual_conteudo" }),
-            new(keys.Ascending(d => d.TipoConteudo), new CreateIndexOptions { Name = "idx_tipo_conteudo" })
-        ];
-
-        foreach (var model in models)
+        try
         {
-            try
-            {
-                await colecao.Indexes.CreateOneAsync(model, cancellationToken: stoppingToken);
-            }
-            catch (MongoCommandException ex) when (ex.Code is 85 or 86)
-            {
-                // Índice equivalente já existe no cluster com especificações compatíveis (ex.: "aula_id")
-            }
+            await colecao.Indexes.CreateOneAsync(model, cancellationToken: stoppingToken);
+        }
+        catch (MongoCommandException ex) when (ex.Code is 85 or 86)
+        {
+            // Índice equivalente já existe no cluster com especificações compatíveis (ex.: "aula_id")
         }
 
-        logger.LogInformation("Índices da coleção {Colecao} no MongoDB Atlas garantidos com sucesso.", options.Value.ConteudosAulaCollection);
+        logger.LogInformation("Índice único da coleção {Colecao} no MongoDB Atlas garantido com sucesso.", options.Value.ConteudosAulaCollection);
     }
 }

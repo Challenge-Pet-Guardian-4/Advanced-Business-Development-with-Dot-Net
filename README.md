@@ -47,7 +47,7 @@ O **PetGuardian** foi concebido para resolver o problema da descentralização d
 7. **Segurança de Senhas no Domínio (`HashHelper` + Salt):** Criptografia com BCrypt e Salt criptográfico exclusivo (`Guid.NewGuid().ToString("N")`) por usuário, prevenindo persistência de senhas em texto puro.
 8. **Resolução Inteligente de Endereço via ViaCEP (`IViaCepService`):** Cadastro automatizado de endereços (`Cep`, `Numero`) resolvendo de forma transparente `Bairro`, `Cidade` e `Estado` com reaproveitamento de entidades no banco.
 9. **Paginação, Ordenação, Filtros e HATEOAS:** Consultas paginadas (`PageQuery` + `PagedResponse<T>`) executadas no banco (`Skip`/`Take`) para os 7 agregados principais (`Pet`, `Tarefa`, `Usuario`, `Historico`, `Trilha`, `Modulo` e `Aula`) e hipermídia `_links` em todos os recursos da API.
-10. **Eliminação de N+1 Queries & Otimização DRY (Consultas Batch & ToLookup):** Consultas do EF Core executadas com expressões semânticas (`Find`, `FirstOrDefault`) e `.AsNoTracking()`. Na montagem da Rede de Cuidado (`UsuarioPetService.GetRedeCuidadoByUsuarioId`) e na resolução de conteúdos de aulas no MongoDB (`GetByAulaIdsAsync`), os dados são carregados em lote, reduzindo o overhead de $O(N)$ para $O(1)$ roundtrips de banco de dados.
+10. **Transações Atômicas (`IUnitOfWork`) & Eliminação de N+1 Queries (Consultas Batch & ToLookup):** Operações com múltiplas escritas relacionais (`UsuarioService.Create`/`Update`, `UsuarioPetService.Update`, `TarefaService.Concluir` e `EnderecoService.Create`/`Update`) são coordenadas atomicamente via `IUnitOfWork` (`UnitOfWork` com suporte a transações aninhadas). Consultas do EF Core são executadas com `.AsNoTracking()` e carregamento em lote nos endpoints contextuais (`/api/pet/me`, `/api/tarefa/me`, `/api/trilha/me`), na Rede de Cuidado (`GetRedeCuidadoByUsuarioId`) e no MongoDB (`GetByAulaIdsAsync`), reduzindo o overhead de $O(N)$ para $O(1)$ roundtrips de banco.
 
 ---
 
@@ -192,13 +192,13 @@ PetGuardian/
 ├── PetGuardian.Application/        # Camada de Aplicação: Casos de Uso, Orquestração, DTOs e Interfaces
 │   ├── Common/                     # PageQuery, PagedResult<T>, PagedResponse<T>, Link e PetGuardianActivitySource
 │   ├── DTOs/                       # Requests, UpdateRequests, Filters e Responses tipados com _links (Records imutáveis)
-│   ├── Repositories/               # Contratos IRepository<T>, IConteudoAulaRepository e interfaces especializadas
+│   ├── Repositories/               # Contratos IRepository<T>, IUnitOfWork, IConteudoAulaRepository e interfaces especializadas
 │   └── Services/                   # 16 Serviços de Negócio + AuthService, TokenService e ViaCepService
 │
 ├── PetGuardian.Infrastructure/     # Camada de Infraestrutura: EF Core (Oracle) + MongoDB.Driver (NoSQL)
 │   ├── Migrations/                 # Migração relacional EF Core (InitialCreate)
 │   ├── Mongo/                      # ConteudoAulaDocument, ConteudoAulaRepository, MongoIndexesInitializer
-│   └── Persistence/                # PetGuardianContext, Repositórios Especializados e Configurations Fluent API
+│   └── Persistence/                # PetGuardianContext, UnitOfWork, Repositórios Especializados e Configurations Fluent API
 │
 ├── PetGuardian.API/                # Camada de Apresentação & Hosting: Controladores REST, Segurança e Observabilidade
 │   ├── Controllers/                # 17 Controllers RESTful (16 recursos + AuthController) herdando de ApiControllerBase
@@ -209,9 +209,9 @@ PetGuardian/
 │   ├── Middleware/                 # CorrelationIdMiddleware e RequestMetricsMiddleware
 │   └── Security/                   # AuthorizationPolicies, RequireAdminForWritesConvention e BearerSecurityOperationFilter
 │
-├── PetGuardian.UnitTests/          # Suíte de Testes Unitários xUnit (212 testes — Domínio + Aplicação com Moq, Padrão AAA)
+├── PetGuardian.UnitTests/          # Suíte de Testes Unitários xUnit (213 testes — Domínio + Aplicação com Moq, Padrão AAA)
 │   ├── Domain/                     # 16 classes testando invariantes, mutações e hashing de senha
-│   ├── Application/                # 17 classes testando regras de negócio, paginação e filtros com Moq
+│   ├── Application/                # 18 classes testando regras de negócio, autenticação, paginação e filtros com Moq
 │   └── Fixtures/                   # TestFixture e UnitTestCollection
 │
 └── PetGuardian.IntegrationTests/   # Suíte de Testes de Integração (146 testes — WebApplicationFactory e InMemory DB)
@@ -309,8 +309,8 @@ A solução conta com **359 testes automatizados** (`213` unitários + `146` de 
 1. **PetGuardian.UnitTests (213 testes):**
    * **Domínio (16 Classes / Validação de Invariantes & Criptografia):**
      * `PetTests`, `UsuarioTests`, `TarefaTests`, `TrilhaTests`, `ModuloTests`, `AulaTests` (incluindo `Concluir` e `Desmarcar`), `HistoricoTests`, `UsuarioPetTests`, `EnderecoTests`, `StatusTests`, `RacaTests`, `TelefoneTests`, `EstadoTests`, `CidadeTests`, `BairroTests`, `HashHelperTests`.
-   * **Aplicação (17 Classes / Orquestração de Casos de Uso, Paginação e Filtros com Moq):**
-     * `PetServiceTests`, `UsuarioServiceTests`, `TarefaServiceTests`, `UsuarioPetServiceTests`, `EnderecoServiceTests`, `BairroServiceTests`, `CidadeServiceTests`, `EstadoServiceTests`, `StatusServiceTests`, `RacaServiceTests`, `TelefoneServiceTests`, `HistoricoServiceTests`, `TrilhaServiceTests`, `ModuloServiceTests`, `AulaServiceTests`, `ConteudoAulaServiceTests`, `PagedResponseTests`.
+   * **Aplicação (18 Classes / Orquestração de Casos de Uso, Autenticação, Paginação e Filtros com Moq):**
+     * `PetServiceTests`, `UsuarioServiceTests`, `TarefaServiceTests`, `UsuarioPetServiceTests`, `EnderecoServiceTests`, `BairroServiceTests`, `CidadeServiceTests`, `EstadoServiceTests`, `StatusServiceTests`, `RacaServiceTests`, `TelefoneServiceTests`, `HistoricoServiceTests`, `TrilhaServiceTests`, `ModuloServiceTests`, `AulaServiceTests`, `ConteudoAulaServiceTests`, `AuthServiceTests`, `PagedResponseTests`.
 2. **PetGuardian.IntegrationTests (146 testes):**
    * **Autenticação, Autorização & Segurança JWT:**
      * `AuthControllerIntegrationTests` e `AuthorizationIntegrationTests` (Login 200 com JWT, 401 credenciais inválidas, `/api/auth/me`, RBAC Admin vs Comum/Premium, bloqueio de escalada de privilégio 403).

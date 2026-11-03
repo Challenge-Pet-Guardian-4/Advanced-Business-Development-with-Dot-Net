@@ -12,15 +12,13 @@ namespace PetGuardian.Application.Services.Implementations;
 /// Serviço de aplicação responsável pelo gerenciamento de trilhas de capacitação vinculadas a pets.
 /// </summary>
 public sealed class TrilhaService(
-    ITrilhaRepository        trilhaRepository,
-    IPetRepository           petRepository,
-    ILogger<TrilhaService>   logger) : ITrilhaService
+    ITrilhaRepository      trilhaRepository,
+    IPetRepository         petRepository,
+    ILogger<TrilhaService> logger) : ITrilhaService
 {
     public PagedResponse<TrilhaResponse> Search(PageQuery query, TrilhaFilter filter)
     {
         var q = query.Normalized();
-        logger.LogInformation("Pesquisando trilhas: página {Page}, tamanho {PageSize}.", q.Page, q.PageSize);
-
         var nome = filter.Nome?.Trim().ToLowerInvariant();
         Expression<Func<Trilha, bool>> predicate = t =>
             (nome == null || t.Nome.ToLower().Contains(nome))
@@ -30,62 +28,40 @@ public sealed class TrilhaService(
         return PagedResponse<TrilhaResponse>.Create(resultado.Map(TrilhaResponse.FromDomain), q);
     }
 
-    public TrilhaResponse? GetById(Guid id)
-    {
-        logger.LogInformation("Buscando trilha por ID: {TrilhaId}", id);
-        var trilha = trilhaRepository.GetById(id);
-        if (trilha is null)
-            logger.LogWarning("Trilha com ID {TrilhaId} não encontrada.", id);
+    public TrilhaResponse? GetById(Guid id) =>
+        trilhaRepository.GetById(id) is { } trilha ? TrilhaResponse.FromDomain(trilha) : null;
 
-        return trilha is null ? null : TrilhaResponse.FromDomain(trilha);
-    }
+    public IReadOnlyList<TrilhaResponse> GetByPetId(Guid petId) =>
+        trilhaRepository.GetByPetId(petId).Select(TrilhaResponse.FromDomain).ToList();
 
-    public IReadOnlyList<TrilhaResponse> GetByPetId(Guid petId)
+    public IReadOnlyList<TrilhaResponse> GetByPetIds(IEnumerable<Guid> petIds)
     {
-        logger.LogInformation("Buscando trilhas do pet: {PetId}", petId);
-        return trilhaRepository.GetByPetId(petId).Select(TrilhaResponse.FromDomain).ToList();
+        var idSet = petIds.ToHashSet();
+        return idSet.Count == 0
+            ? []
+            : trilhaRepository.Find(t => idSet.Contains(t.PetId)).Select(TrilhaResponse.FromDomain).ToList();
     }
 
     public TrilhaResponse Create(TrilhaRequest request)
     {
-        logger.LogInformation("Iniciando cadastro de trilha '{Nome}' para o pet {PetId}", request.Nome, request.PetId);
         if (!petRepository.ExistsById(request.PetId))
-        {
-            logger.LogWarning("Tentativa de criar trilha para pet inexistente: {PetId}", request.PetId);
             throw new InvalidOperationException("Pet não encontrado.");
-        }
 
-        var trilha = request.ToDomain();
-        trilhaRepository.Add(trilha);
-        logger.LogInformation("Trilha {TrilhaId} ('{Nome}') cadastrada com sucesso.", trilha.Id, trilha.Nome);
+        var trilha = trilhaRepository.Add(request.ToDomain());
+        logger.LogInformation("Trilha {TrilhaId} ('{Nome}') cadastrada para o pet {PetId}.", trilha.Id, trilha.Nome, trilha.PetId);
         return TrilhaResponse.FromDomain(trilha);
     }
 
     public TrilhaResponse? Update(Guid id, TrilhaUpdateRequest request)
     {
-        logger.LogInformation("Iniciando atualização da trilha: {TrilhaId}", id);
         var trilha = trilhaRepository.GetById(id);
         if (trilha is null)
-        {
-            logger.LogWarning("Tentativa de atualizar trilha inexistente: {TrilhaId}", id);
             return null;
-        }
 
         trilha.Atualizar(request.Nome, request.Descricao);
         trilhaRepository.Update(trilha);
-        logger.LogInformation("Trilha {TrilhaId} atualizada com sucesso.", id);
         return TrilhaResponse.FromDomain(trilha);
     }
 
-    public bool Delete(Guid id)
-    {
-        logger.LogInformation("Iniciando exclusão da trilha: {TrilhaId}", id);
-        var removido = trilhaRepository.Delete(id);
-        if (removido)
-            logger.LogInformation("Trilha {TrilhaId} removida com sucesso.", id);
-        else
-            logger.LogWarning("Tentativa de exclusão de trilha inexistente: {TrilhaId}", id);
-
-        return removido;
-    }
+    public bool Delete(Guid id) => trilhaRepository.Delete(id);
 }

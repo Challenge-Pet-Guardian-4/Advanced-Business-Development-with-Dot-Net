@@ -12,15 +12,13 @@ namespace PetGuardian.Application.Services.Implementations;
 /// Serviço de aplicação responsável pelo gerenciamento de módulos de aprendizagem vinculados a trilhas.
 /// </summary>
 public sealed class ModuloService(
-    IModuloRepository        moduloRepository,
-    ITrilhaRepository        trilhaRepository,
-    ILogger<ModuloService>   logger) : IModuloService
+    IModuloRepository      moduloRepository,
+    ITrilhaRepository      trilhaRepository,
+    ILogger<ModuloService> logger) : IModuloService
 {
     public PagedResponse<ModuloResponse> Search(PageQuery query, ModuloFilter filter)
     {
         var q = query.Normalized();
-        logger.LogInformation("Pesquisando módulos: página {Page}, tamanho {PageSize}.", q.Page, q.PageSize);
-
         var nome = filter.Nome?.Trim().ToLowerInvariant();
         Expression<Func<Modulo, bool>> predicate = m =>
             (nome == null || m.Nome.ToLower().Contains(nome))
@@ -30,62 +28,32 @@ public sealed class ModuloService(
         return PagedResponse<ModuloResponse>.Create(resultado.Map(ModuloResponse.FromDomain), q);
     }
 
-    public ModuloResponse? GetById(Guid id)
-    {
-        logger.LogInformation("Buscando módulo por ID: {ModuloId}", id);
-        var modulo = moduloRepository.GetById(id);
-        if (modulo is null)
-            logger.LogWarning("Módulo com ID {ModuloId} não encontrado.", id);
+    public ModuloResponse? GetById(Guid id) =>
+        moduloRepository.GetById(id) is { } modulo ? ModuloResponse.FromDomain(modulo) : null;
 
-        return modulo is null ? null : ModuloResponse.FromDomain(modulo);
-    }
-
-    public IReadOnlyList<ModuloResponse> GetByTrilhaId(Guid trilhaId)
-    {
-        logger.LogInformation("Buscando módulos da trilha: {TrilhaId}", trilhaId);
-        return moduloRepository.GetByTrilhaId(trilhaId).Select(ModuloResponse.FromDomain).ToList();
-    }
+    public IReadOnlyList<ModuloResponse> GetByTrilhaId(Guid trilhaId) =>
+        moduloRepository.GetByTrilhaId(trilhaId).Select(ModuloResponse.FromDomain).ToList();
 
     public ModuloResponse Create(ModuloRequest request)
     {
-        logger.LogInformation("Iniciando cadastro de módulo '{Nome}' para a trilha {TrilhaId}", request.Nome, request.TrilhaId);
         if (!trilhaRepository.ExistsById(request.TrilhaId))
-        {
-            logger.LogWarning("Tentativa de criar módulo para trilha inexistente: {TrilhaId}", request.TrilhaId);
             throw new InvalidOperationException("Trilha não encontrada.");
-        }
 
-        var modulo = request.ToDomain();
-        moduloRepository.Add(modulo);
-        logger.LogInformation("Módulo {ModuloId} ('{Nome}') cadastrado com sucesso.", modulo.Id, modulo.Nome);
+        var modulo = moduloRepository.Add(request.ToDomain());
+        logger.LogInformation("Módulo {ModuloId} ('{Nome}') cadastrado na trilha {TrilhaId}.", modulo.Id, modulo.Nome, modulo.TrilhaId);
         return ModuloResponse.FromDomain(modulo);
     }
 
     public ModuloResponse? Update(Guid id, ModuloUpdateRequest request)
     {
-        logger.LogInformation("Iniciando atualização do módulo: {ModuloId}", id);
         var modulo = moduloRepository.GetById(id);
         if (modulo is null)
-        {
-            logger.LogWarning("Tentativa de atualizar módulo inexistente: {ModuloId}", id);
             return null;
-        }
 
         modulo.Atualizar(request.Nome, request.TempoConclusao, request.Descricao);
         moduloRepository.Update(modulo);
-        logger.LogInformation("Módulo {ModuloId} atualizado com sucesso.", id);
         return ModuloResponse.FromDomain(modulo);
     }
 
-    public bool Delete(Guid id)
-    {
-        logger.LogInformation("Iniciando exclusão do módulo: {ModuloId}", id);
-        var removido = moduloRepository.Delete(id);
-        if (removido)
-            logger.LogInformation("Módulo {ModuloId} removido com sucesso.", id);
-        else
-            logger.LogWarning("Tentativa de exclusão de módulo inexistente: {ModuloId}", id);
-
-        return removido;
-    }
+    public bool Delete(Guid id) => moduloRepository.Delete(id);
 }

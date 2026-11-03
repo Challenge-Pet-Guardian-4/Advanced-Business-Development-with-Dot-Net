@@ -8,6 +8,7 @@ public interface ITrilhaService
     PagedResponse<TrilhaResponse> Search(PageQuery query, TrilhaFilter filter);
     TrilhaResponse? GetById(Guid id);
     IReadOnlyList<TrilhaResponse> GetByPetId(Guid petId);
+    IReadOnlyList<TrilhaResponse> GetByPetIds(IEnumerable<Guid> petIds);
     TrilhaResponse Create(TrilhaRequest request);
     TrilhaResponse? Update(Guid id, TrilhaUpdateRequest request);
     bool Delete(Guid id);

@@ -8,13 +8,14 @@
         <RootNamespace>PetGuardian.API</RootNamespace>
         <UserSecretsId>petguardian-api-4f7ef2d8-8267-492d-9c82-a8f7f1ccf46a</UserSecretsId>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);1591;NU1903</NoWarn>
+        <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="dotenv.net" Version="4.2.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+        <PackageReference Include="Microsoft.OpenApi" Version="2.13.0" />
         <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.18.0-beta.1" />
@@ -27,6 +28,7 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.0" />
+        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

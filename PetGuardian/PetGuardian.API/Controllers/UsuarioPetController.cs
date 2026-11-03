@@ -8,43 +8,31 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<UsuarioPetController> logger) : ApiControllerBase
+public class UsuarioPetController(IUsuarioPetService usuarioPetService) : ApiControllerBase
 {
     /// <summary>Lista todos os vínculos da rede de cuidado.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
-    {
-        logger.LogInformation("HTTP GET /api/usuariopet: Listando todos os vínculos de rede de cuidado.");
-        return Ok(usuarioPetService.GetAll().Select(ComLinks).ToList());
-    }
+    public IActionResult GetAll() =>
+        Ok(usuarioPetService.GetAll().Select(ComLinks).ToList());
 
     /// <summary>Vínculos de um usuário.</summary>
     [HttpGet("by-usuario/{usuarioId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByUsuario(Guid usuarioId)
-    {
-        logger.LogInformation("HTTP GET /api/usuariopet/by-usuario/{UsuarioId}: Buscando vínculos por usuário.", usuarioId);
-        return Ok(usuarioPetService.GetByUsuarioId(usuarioId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByUsuario(Guid usuarioId) =>
+        Ok(usuarioPetService.GetByUsuarioId(usuarioId).Select(ComLinks).ToList());
 
     /// <summary>Vínculos de um pet.</summary>
     [HttpGet("by-pet/{petId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioPetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByPet(Guid petId)
-    {
-        logger.LogInformation("HTTP GET /api/usuariopet/by-pet/{PetId}: Buscando vínculos por pet.", petId);
-        return Ok(usuarioPetService.GetByPetId(petId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByPet(Guid petId) =>
+        Ok(usuarioPetService.GetByPetId(petId).Select(ComLinks).ToList());
 
     /// <summary>Rede de cuidado colaborativo (co-cuidadores e pets) de um usuário.</summary>
     [HttpGet("rede-cuidado/{usuarioId:guid}")]
     [ProducesResponseType(typeof(RedeCuidadoResponse), StatusCodes.Status200OK)]
-    public IActionResult GetRedeCuidado(Guid usuarioId)
-    {
-        logger.LogInformation("HTTP GET /api/usuariopet/rede-cuidado/{UsuarioId}: Montando rede de cuidado.", usuarioId);
-        return Ok(usuarioPetService.GetRedeCuidadoByUsuarioId(usuarioId));
-    }
+    public IActionResult GetRedeCuidado(Guid usuarioId) =>
+        Ok(usuarioPetService.GetRedeCuidadoByUsuarioId(usuarioId));
 
     /// <summary>Cria um vínculo usuário-pet (o próprio usuário do token ou Admin).</summary>
     [HttpPost]
@@ -56,7 +44,6 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         if (!IsSelfOrAdmin(request.UsuarioId))
             return Forbid();
 
-        logger.LogInformation("HTTP POST /api/usuariopet: Vinculando Usuário {UsuarioId} ao Pet {PetId}.", request.UsuarioId, request.PetId);
         var created = usuarioPetService.Create(request);
         return CreatedAtAction(nameof(GetByUsuario), new { usuarioId = created.UsuarioId }, ComLinks(created));
     }
@@ -71,7 +58,6 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         if (!IsSelfOrAdmin(request.AdminUsuarioId))
             return Forbid();
 
-        logger.LogInformation("HTTP POST /api/usuariopet/invite/by-usuario: Convite do Admin {AdminId} para Usuário {ConvidadoId} no Pet {PetId}.", request.AdminUsuarioId, request.UsuarioConvidadoId, request.PetId);
         var created = usuarioPetService.InviteByUsuario(request);
         return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, ComLinks(created));
     }
@@ -86,11 +72,9 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
         if (!IsSelfOrAdmin(request.AdminUsuarioId))
             return Forbid();
 
-        logger.LogInformation("HTTP POST /api/usuariopet/invite/by-email: Convite do Admin {AdminId} para E-mail {Email} no Pet {PetId}.", request.AdminUsuarioId, request.Email, request.PetId);
         var created = usuarioPetService.InviteByEmail(request);
         return CreatedAtAction(nameof(GetByPet), new { petId = created.PetId }, ComLinks(created));
     }
-
 
     /// <summary>Alterna se este usuário é o responsável principal do pet.</summary>
     [HttpPut("{usuarioId:guid}/{petId:guid}")]
@@ -101,19 +85,11 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult Update(Guid usuarioId, Guid petId, [FromBody] UsuarioPetUpdateRequest request)
     {
         if (!CanAccessPetCareCircle(usuarioPetService, petId))
-        {
-            logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", usuarioId, petId, CurrentUserId, petId);
             return Forbid();
-        }
 
-        logger.LogInformation("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Atualizando responsabilidade principal.", usuarioId, petId);
-        var updated = usuarioPetService.Update(usuarioId, petId, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/usuariopet/{UsuarioId}/{PetId}: Vínculo não encontrado para atualização.", usuarioId, petId);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
+        return usuarioPetService.Update(usuarioId, petId, request) is { } updated
+            ? Ok(ComLinks(updated))
+            : NotFound();
     }
 
     /// <summary>Remove um vínculo pela chave composta (usuarioId + petId).</summary>
@@ -124,18 +100,9 @@ public class UsuarioPetController(IUsuarioPetService usuarioPetService, ILogger<
     public IActionResult Delete(Guid usuarioId, Guid petId)
     {
         if (!CanAccessPetCareCircle(usuarioPetService, petId))
-        {
-            logger.LogWarning("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: usuário {CurrentUserId} não participa da rede de cuidado do pet {PetId}.", usuarioId, petId, CurrentUserId, petId);
             return Forbid();
-        }
 
-        logger.LogInformation("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: Desvinculando usuário de pet.", usuarioId, petId);
-        if (!usuarioPetService.Delete(usuarioId, petId))
-        {
-            logger.LogWarning("HTTP DELETE /api/usuariopet/{UsuarioId}/{PetId}: Vínculo não encontrado para exclusão.", usuarioId, petId);
-            return NotFound();
-        }
-        return NoContent();
+        return usuarioPetService.Delete(usuarioId, petId) ? NoContent() : NotFound();
     }
 
     private UsuarioPetResponse ComLinks(UsuarioPetResponse up) => up with

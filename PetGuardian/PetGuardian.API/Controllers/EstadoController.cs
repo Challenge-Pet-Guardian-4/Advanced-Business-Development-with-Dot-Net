@@ -8,32 +8,20 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class EstadoController(IEstadoService estadoService, ILogger<EstadoController> logger) : ApiControllerBase
+public class EstadoController(IEstadoService estadoService) : ApiControllerBase
 {
     /// <summary>Lista todos os estados.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<EstadoResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
-    {
-        logger.LogInformation("HTTP GET /api/estado: Listando todos os estados.");
-        return Ok(estadoService.GetAll().Select(ComLinks).ToList());
-    }
+    public IActionResult GetAll() =>
+        Ok(estadoService.GetAll().Select(ComLinks).ToList());
 
     /// <summary>Obtém um estado pelo Id.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(EstadoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/estado/{Id}: Buscando estado.", id);
-        var estado = estadoService.GetById(id);
-        if (estado is null)
-        {
-            logger.LogWarning("HTTP GET /api/estado/{Id}: Estado não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(estado));
-    }
+    public IActionResult GetById(Guid id) =>
+        estadoService.GetById(id) is { } estado ? Ok(ComLinks(estado)) : NotFound();
 
     /// <summary>Cria um estado.</summary>
     [HttpPost]
@@ -41,9 +29,7 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] EstadoRequest request)
     {
-        logger.LogInformation("HTTP POST /api/estado: Cadastrando estado '{Nome}'.", request.NomeEstado);
         var created = estadoService.Create(request);
-        logger.LogInformation("HTTP POST /api/estado: Estado {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -52,34 +38,15 @@ public class EstadoController(IEstadoService estadoService, ILogger<EstadoContro
     [ProducesResponseType(typeof(EstadoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] EstadoRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/estado/{Id}: Atualizando estado '{Nome}'.", id, request.NomeEstado);
-        var updated = estadoService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/estado/{Id}: Estado não encontrado para atualização.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP PUT /api/estado/{Id}: Estado atualizado com sucesso.", id);
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] EstadoRequest request) =>
+        estadoService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Remove um estado pelo Id.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/estado/{Id}: Excluindo estado.", id);
-        if (!estadoService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/estado/{Id}: Estado não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP DELETE /api/estado/{Id}: Estado excluído com sucesso.", id);
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        estadoService.Delete(id) ? NoContent() : NotFound();
 
     private EstadoResponse ComLinks(EstadoResponse e) => e with
     {

@@ -10,25 +10,16 @@ namespace PetGuardian.API.Controllers;
 [Route("api/aula/{aulaId:guid}/conteudo")]
 [ApiController]
 [Produces("application/json")]
-public class ConteudoAulaController(
-    IConteudoAulaService conteudoService,
-    ILogger<ConteudoAulaController> logger) : ApiControllerBase
+public class ConteudoAulaController(IConteudoAulaService conteudoService) : ApiControllerBase
 {
     /// <summary>Obtém o conteúdo da aula.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ConteudoAulaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByAulaId(Guid aulaId, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("HTTP GET /api/aula/{AulaId}/conteudo: Buscando conteúdo.", aulaId);
-        var conteudo = await conteudoService.GetByAulaIdAsync(aulaId, cancellationToken);
-        if (conteudo is null)
-        {
-            logger.LogWarning("HTTP GET /api/aula/{AulaId}/conteudo: Conteúdo não encontrado.", aulaId);
-            return NotFound();
-        }
-        return Ok(ComLinks(conteudo));
-    }
+    public async Task<IActionResult> GetByAulaId(Guid aulaId, CancellationToken cancellationToken) =>
+        await conteudoService.GetByAulaIdAsync(aulaId, cancellationToken) is { } conteudo
+            ? Ok(ComLinks(conteudo))
+            : NotFound();
 
     /// <summary>Cadastra o conteúdo da aula (uma aula possui no máximo um conteúdo).</summary>
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -39,7 +30,6 @@ public class ConteudoAulaController(
     public async Task<IActionResult> Create(
         Guid aulaId, [FromBody] ConteudoAulaRequest request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("HTTP POST /api/aula/{AulaId}/conteudo: Cadastrando conteúdo.", aulaId);
         var created = await conteudoService.CreateAsync(aulaId, request, cancellationToken);
         return CreatedAtAction(nameof(GetByAulaId), new { aulaId }, ComLinks(created));
     }
@@ -52,17 +42,10 @@ public class ConteudoAulaController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
-        Guid aulaId, [FromBody] ConteudoAulaRequest request, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("HTTP PUT /api/aula/{AulaId}/conteudo: Atualizando conteúdo.", aulaId);
-        var updated = await conteudoService.UpdateAsync(aulaId, request, cancellationToken);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/aula/{AulaId}/conteudo: Conteúdo não encontrado.", aulaId);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
-    }
+        Guid aulaId, [FromBody] ConteudoAulaRequest request, CancellationToken cancellationToken) =>
+        await conteudoService.UpdateAsync(aulaId, request, cancellationToken) is { } updated
+            ? Ok(ComLinks(updated))
+            : NotFound();
 
     /// <summary>Remove o conteúdo da aula.</summary>
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -70,16 +53,8 @@ public class ConteudoAulaController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(Guid aulaId, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("HTTP DELETE /api/aula/{AulaId}/conteudo: Excluindo conteúdo.", aulaId);
-        if (!await conteudoService.DeleteAsync(aulaId, cancellationToken))
-        {
-            logger.LogWarning("HTTP DELETE /api/aula/{AulaId}/conteudo: Conteúdo não encontrado.", aulaId);
-            return NotFound();
-        }
-        return NoContent();
-    }
+    public async Task<IActionResult> Delete(Guid aulaId, CancellationToken cancellationToken) =>
+        await conteudoService.DeleteAsync(aulaId, cancellationToken) ? NoContent() : NotFound();
 
     private ConteudoAulaResponse ComLinks(ConteudoAulaResponse conteudo) => conteudo with
     {

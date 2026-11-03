@@ -7,6 +7,7 @@ public interface ITarefaService
 {
     PagedResponse<TarefaResponse> Search(PageQuery query, TarefaFilter filter);
     TarefaResponse? GetById(Guid id);
+    IReadOnlyList<TarefaResponse> GetMinhasTarefas(Guid usuarioId, bool? concluida = null);
     IReadOnlyList<TarefaResponse> GetByPetId(Guid petId);
     IReadOnlyList<TarefaResponse> GetByUsuarioId(Guid usuarioId);
     IReadOnlyList<TarefaResponse> GetByStatusId(Guid statusId);

@@ -11,8 +11,7 @@ namespace PetGuardian.API.Controllers;
 [Produces("application/json")]
 public class PetController(
     IPetService petService,
-    IUsuarioPetService usuarioPetService,
-    ILogger<PetController> logger) : ApiControllerBase
+    IUsuarioPetService usuarioPetService) : ApiControllerBase
 {
     /// <summary>Lista pets vinculados ao usuário autenticado.</summary>
     [HttpGet("me")]
@@ -20,14 +19,9 @@ public class PetController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult GetMyPets()
     {
-        if (CurrentUserId is null) return Unauthorized();
-        var vinculos = usuarioPetService.GetByUsuarioId(CurrentUserId.Value);
-        var pets = vinculos
-            .Select(v => petService.GetById(v.PetId))
-            .Where(p => p is not null)
-            .Select(p => ComLinks(p!))
-            .ToList();
-        return Ok(pets);
+        if (CurrentUserId is not { } userId) return Unauthorized();
+        var petIds = usuarioPetService.GetByUsuarioId(userId).Select(v => v.PetId);
+        return Ok(petService.GetByIds(petIds).Select(ComLinks).ToList());
     }
 
     /// <summary>Lista pets com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
@@ -37,9 +31,7 @@ public class PetController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] PetFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/pet: pesquisando pets (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
         var resultado = petService.Search(query, filter);
-
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
@@ -58,35 +50,19 @@ public class PetController(
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PetResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/pet/{Id}: Buscando pet.", id);
-        var pet = petService.GetById(id);
-        if (pet is null)
-        {
-            logger.LogWarning("HTTP GET /api/pet/{Id}: Pet não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(pet));
-    }
+    public IActionResult GetById(Guid id) =>
+        petService.GetById(id) is { } pet ? Ok(ComLinks(pet)) : NotFound();
 
     /// <summary>Lista todos os pets de uma raça.</summary>
     [HttpGet("by-raca/{racaId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByRaca(Guid racaId)
-    {
-        logger.LogInformation("HTTP GET /api/pet/by-raca/{RacaId}: Buscando pets por raça.", racaId);
-        return Ok(petService.GetByRacaId(racaId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByRaca(Guid racaId) =>
+        Ok(petService.GetByRacaId(racaId).Select(ComLinks).ToList());
 
     /// <summary>Linha do tempo histórica unificada de um pet (Historico + Tarefas concluídas).</summary>
     [HttpGet("{id:guid}/historico")]
     [ProducesResponseType(typeof(IReadOnlyList<PetHistoricoItemResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetHistorico(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/pet/{Id}/historico: Buscando histórico do pet.", id);
-        return Ok(petService.GetHistorico(id));
-    }
+    public IActionResult GetHistorico(Guid id) => Ok(petService.GetHistorico(id));
 
     /// <summary>Cadastra um pet.</summary>
     [HttpPost]
@@ -94,9 +70,7 @@ public class PetController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] PetRequest request)
     {
-        logger.LogInformation("HTTP POST /api/pet: Iniciando cadastro do pet '{Nome}'.", request.Nome);
         var created = petService.Create(request);
-        logger.LogInformation("HTTP POST /api/pet: Pet {Id} cadastrado com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -105,32 +79,15 @@ public class PetController(
     [ProducesResponseType(typeof(PetResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] PetRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/pet/{Id}: Atualizando pet '{Nome}'.", id, request.Nome);
-        var updated = petService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/pet/{Id}: Pet não encontrado para atualização.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] PetRequest request) =>
+        petService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Remove um pet pelo Id.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/pet/{Id}: Excluindo pet.", id);
-        if (!petService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/pet/{Id}: Pet não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        petService.Delete(id) ? NoContent() : NotFound();
 
     private PetResponse ComLinks(PetResponse p) => p with
     {

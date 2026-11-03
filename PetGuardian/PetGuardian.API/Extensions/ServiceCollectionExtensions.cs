@@ -40,9 +40,10 @@ public static class PetGuardianServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Registra as implementações de repositório relacionais como <c>Scoped</c>.</summary>
+    /// <summary>Registra as implementações de repositório relacionais e Unit of Work como <c>Scoped</c>.</summary>
     public static IServiceCollection AddPetGuardianRepositories(this IServiceCollection services)
     {
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IPetRepository, PetRepository>();
         services.AddScoped<ITarefaRepository, TarefaRepository>();

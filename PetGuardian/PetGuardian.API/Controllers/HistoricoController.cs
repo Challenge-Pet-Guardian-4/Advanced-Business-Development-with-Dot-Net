@@ -9,9 +9,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class HistoricoController(
-    IHistoricoService historicoService,
-    ILogger<HistoricoController> logger) : ApiControllerBase
+public class HistoricoController(IHistoricoService historicoService) : ApiControllerBase
 {
     /// <summary>Lista históricos com paginação, ordenação e filtros (resposta com links HATEOAS).</summary>
     [HttpGet]
@@ -19,9 +17,7 @@ public class HistoricoController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult GetAll([FromQuery] PageQuery query, [FromQuery] HistoricoFilter filter)
     {
-        logger.LogInformation("HTTP GET /api/historico: pesquisando históricos (página {Page}, tamanho {PageSize}).", query.Page, query.PageSize);
         var resultado = historicoService.Search(query, filter);
-
         return Ok(Paginar(resultado, nameof(GetAll), numero => new
         {
             page = numero,
@@ -39,26 +35,14 @@ public class HistoricoController(
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(HistoricoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/historico/{Id}: Buscando histórico.", id);
-        var h = historicoService.GetById(id);
-        if (h is null)
-        {
-            logger.LogWarning("HTTP GET /api/historico/{Id}: Histórico não encontrado.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(h));
-    }
+    public IActionResult GetById(Guid id) =>
+        historicoService.GetById(id) is { } h ? Ok(ComLinks(h)) : NotFound();
 
     /// <summary>Lista o histórico de um pet específico.</summary>
     [HttpGet("by-pet/{petId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<HistoricoResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetByPet(Guid petId)
-    {
-        logger.LogInformation("HTTP GET /api/historico/by-pet/{PetId}: Buscando histórico do pet.", petId);
-        return Ok(historicoService.GetByPetId(petId).Select(ComLinks).ToList());
-    }
+    public IActionResult GetByPet(Guid petId) =>
+        Ok(historicoService.GetByPetId(petId).Select(ComLinks).ToList());
 
     /// <summary>Cadastra um novo registro de histórico.</summary>
     [HttpPost]
@@ -66,7 +50,6 @@ public class HistoricoController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] HistoricoRequest request)
     {
-        logger.LogInformation("HTTP POST /api/historico: Cadastrando evento '{TipoEvento}' para Pet {PetId}.", request.TipoHist, request.PetId);
         var created = historicoService.Create(request);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
@@ -76,32 +59,15 @@ public class HistoricoController(
     [ProducesResponseType(typeof(HistoricoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] HistoricoUpdateRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/historico/{Id}: Atualizando histórico.", id);
-        var updated = historicoService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/historico/{Id}: Histórico não encontrado para atualização.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] HistoricoUpdateRequest request) =>
+        historicoService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Remove um registro de histórico.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/historico/{Id}: Excluindo histórico.", id);
-        if (!historicoService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/historico/{Id}: Histórico não encontrado para exclusão.", id);
-            return NotFound();
-        }
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        historicoService.Delete(id) ? NoContent() : NotFound();
 
     private HistoricoResponse ComLinks(HistoricoResponse h) => h with
     {

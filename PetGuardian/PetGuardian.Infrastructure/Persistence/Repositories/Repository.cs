@@ -18,56 +18,33 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
     private readonly DbSet<T> _set = context.Set<T>();
 
     /// <inheritdoc />
-    public IReadOnlyList<T> GetAll()
-    {
-        return _set
-            .AsNoTracking()
-            .OrderBy(e => e.Id)
-            .ToList();
-    }
+    public IReadOnlyList<T> GetAll() =>
+        _set.AsNoTracking().OrderBy(e => e.Id).ToList();
 
     /// <inheritdoc />
-    public IReadOnlyList<T> Find(Expression<Func<T, bool>> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-        return _set
-            .AsNoTracking()
-            .Where(predicate)
-            .ToList();
-    }
+    public IReadOnlyList<T> Find(Expression<Func<T, bool>> predicate) =>
+        _set.AsNoTracking().Where(predicate).ToList();
 
     /// <inheritdoc />
-    public T? FirstOrDefault(Expression<Func<T, bool>> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-        return _set.FirstOrDefault(predicate);
-    }
+    public T? FirstOrDefault(Expression<Func<T, bool>> predicate) =>
+        _set.FirstOrDefault(predicate);
 
     /// <inheritdoc />
-    public T? GetById(Guid id)
-    {
-        return _set.Find(id);
-    }
+    public T? GetById(Guid id) => _set.Find(id);
 
     /// <inheritdoc />
     public T Add(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         _set.Add(entity);
         Context.SaveChanges();
-
         return entity;
     }
 
     /// <inheritdoc />
     public T Update(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
-
         _set.Update(entity);
         Context.SaveChanges();
-
         return entity;
     }
 
@@ -80,22 +57,14 @@ public class Repository<T>(PetGuardianContext context) : IRepository<T> where T 
 
         _set.Remove(entity);
         Context.SaveChanges();
-
         return true;
     }
 
     /// <inheritdoc />
-    public bool ExistsById(Guid id)
-    {
-        return _set.Any(e => e.Id == id);
-    }
+    public bool ExistsById(Guid id) => _set.Any(e => e.Id == id);
 
     /// <inheritdoc />
-    public bool Exists(Expression<Func<T, bool>> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-        return _set.Any(predicate);
-    }
+    public bool Exists(Expression<Func<T, bool>> predicate) => _set.Any(predicate);
 
     // Campos que nunca podem ser usados em ordenação (evita vazar informação de hash/salt).
     private static readonly HashSet<string> CamposNaoOrdenaveis = new(StringComparer.OrdinalIgnoreCase)

@@ -8,32 +8,20 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class RacaController(IRacaService racaService, ILogger<RacaController> logger) : ApiControllerBase
+public class RacaController(IRacaService racaService) : ApiControllerBase
 {
     /// <summary>Lista todos os registros de raças cadastrados.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<RacaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
-    {
-        logger.LogInformation("HTTP GET /api/raca: Listando todas as raças.");
-        return Ok(racaService.GetAll().Select(ComLinks).ToList());
-    }
+    public IActionResult GetAll() =>
+        Ok(racaService.GetAll().Select(ComLinks).ToList());
 
     /// <summary>Obtém um registro de raça pelo seu identificador único (ID).</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(RacaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(Guid id)
-    {
-        logger.LogInformation("HTTP GET /api/raca/{Id}: Buscando raça.", id);
-        var raca = racaService.GetById(id);
-        if (raca is null)
-        {
-            logger.LogWarning("HTTP GET /api/raca/{Id}: Raça não encontrada.", id);
-            return NotFound();
-        }
-        return Ok(ComLinks(raca));
-    }
+    public IActionResult GetById(Guid id) =>
+        racaService.GetById(id) is { } raca ? Ok(ComLinks(raca)) : NotFound();
 
     /// <summary>Cadastra um novo registro de raça na base de dados.</summary>
     [HttpPost]
@@ -41,9 +29,7 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] RacaRequest request)
     {
-        logger.LogInformation("HTTP POST /api/raca: Cadastrando raça '{Nome}'.", request.NomeRaca);
         var created = racaService.Create(request);
-        logger.LogInformation("HTTP POST /api/raca: Raça {Id} cadastrada com sucesso.", created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ComLinks(created));
     }
 
@@ -52,34 +38,15 @@ public class RacaController(IRacaService racaService, ILogger<RacaController> lo
     [ProducesResponseType(typeof(RacaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(Guid id, [FromBody] RacaRequest request)
-    {
-        logger.LogInformation("HTTP PUT /api/raca/{Id}: Atualizando raça '{Nome}'.", id, request.NomeRaca);
-        var updated = racaService.Update(id, request);
-        if (updated is null)
-        {
-            logger.LogWarning("HTTP PUT /api/raca/{Id}: Raça não encontrada para atualização.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP PUT /api/raca/{Id}: Raça atualizada com sucesso.", id);
-        return Ok(ComLinks(updated));
-    }
+    public IActionResult Update(Guid id, [FromBody] RacaRequest request) =>
+        racaService.Update(id, request) is { } updated ? Ok(ComLinks(updated)) : NotFound();
 
     /// <summary>Exclui um registro de raça cadastrado pelo seu ID.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete(Guid id)
-    {
-        logger.LogInformation("HTTP DELETE /api/raca/{Id}: Excluindo raça.", id);
-        if (!racaService.Delete(id))
-        {
-            logger.LogWarning("HTTP DELETE /api/raca/{Id}: Raça não encontrada para exclusão.", id);
-            return NotFound();
-        }
-        logger.LogInformation("HTTP DELETE /api/raca/{Id}: Raça excluída com sucesso.", id);
-        return NoContent();
-    }
+    public IActionResult Delete(Guid id) =>
+        racaService.Delete(id) ? NoContent() : NotFound();
 
     private RacaResponse ComLinks(RacaResponse r) => r with
     {

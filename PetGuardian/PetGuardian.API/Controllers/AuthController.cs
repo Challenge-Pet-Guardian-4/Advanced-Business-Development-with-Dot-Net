@@ -9,7 +9,7 @@ namespace PetGuardian.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class AuthController(IAuthService authService, ILogger<AuthController> logger) : ApiControllerBase
+public class AuthController(IAuthService authService) : ApiControllerBase
 {
     /// <summary>
     /// Autentica com e-mail e senha e retorna o token JWT.
@@ -19,15 +19,10 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult Login([FromBody] LoginRequest request)
-    {
-        var resposta = authService.Login(request);
-        if (resposta is null)
-            return Unauthorized(new { message = "E-mail ou senha incorretos." });
-
-        logger.LogInformation("HTTP POST /api/auth/login: usuário {Id} autenticado.", resposta.User.Id);
-        return Ok(resposta);
-    }
+    public IActionResult Login([FromBody] LoginRequest request) =>
+        authService.Login(request) is { } resposta
+            ? Ok(resposta)
+            : Unauthorized(new { message = "E-mail ou senha incorretos." });
 
     /// <summary>Perfil do usuário autenticado (claims do Bearer token).</summary>
     [Authorize]
@@ -38,13 +33,9 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
     public IActionResult Me()
     {
         if (CurrentUserId is not { } usuarioId)
-        {
-            logger.LogWarning("HTTP GET /api/auth/me: claim de identificação ausente ou inválida.");
             return Unauthorized();
-        }
 
-        var perfil = authService.GetPerfil(usuarioId);
-        if (perfil is null)
+        if (authService.GetPerfil(usuarioId) is not { } perfil)
             return NotFound();
 
         return Ok(perfil with

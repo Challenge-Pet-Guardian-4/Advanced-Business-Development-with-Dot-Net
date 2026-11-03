@@ -7,6 +7,7 @@ public interface IPetService
 {
     PagedResponse<PetResponse> Search(PageQuery query, PetFilter filter);
     PetResponse? GetById(Guid id);
+    IReadOnlyList<PetResponse> GetByIds(IEnumerable<Guid> ids);
     IReadOnlyList<PetResponse> GetByRacaId(Guid racaId);
     IReadOnlyList<PetHistoricoItemResponse> GetHistorico(Guid petId);
     PetResponse Create(PetRequest request);
