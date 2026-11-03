@@ -207,4 +207,35 @@ public class PetServiceTests(TestFixture fixture)
         Assert.Equal(pet.Id, result[0].Id);
         _petRepoMock.Verify(r => r.GetByRacaId(racaId), Times.Once);
     }
+
+    [Fact]
+    public void GetByIds_ListaVazia_NaoDeveConsultarBanco()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act
+        var result = service.GetByIds([]);
+
+        // Assert
+        Assert.Empty(result);
+        _petRepoMock.Verify(r => r.Find(It.IsAny<Expression<Func<Pet, bool>>>()), Times.Never);
+    }
+
+    [Fact]
+    public void GetByIds_IdsValidos_DeveConsultarEmLoteUmaUnicaVez()
+    {
+        // Arrange
+        var service = CreateService();
+        var pet = fixture.CriarPetValido("Bidu");
+        _petRepoMock.Setup(r => r.Find(It.IsAny<Expression<Func<Pet, bool>>>())).Returns([pet]);
+
+        // Act
+        var result = service.GetByIds([pet.Id]);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(pet.Id, result[0].Id);
+        _petRepoMock.Verify(r => r.Find(It.IsAny<Expression<Func<Pet, bool>>>()), Times.Once);
+    }
 }

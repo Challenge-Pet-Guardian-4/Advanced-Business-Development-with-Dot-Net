@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PetGuardian.Application.DTOs;
@@ -19,15 +20,23 @@ public class TarefaServiceTests(TestFixture fixture)
     private readonly Mock<IUsuarioPetRepository> _usuarioPetRepoMock = new();
     private readonly Mock<IHistoricoRepository> _historicoRepoMock = new();
     private readonly Mock<ILogger<TarefaService>> _loggerMock = new();
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
 
-    private TarefaService CreateService() =>
-        new(_tarefaRepoMock.Object,
+    private TarefaService CreateService()
+    {
+        _unitOfWorkMock.Setup(u => u.ExecuteInTransaction(It.IsAny<Func<TarefaResponse>>()))
+            .Returns<Func<TarefaResponse>>(fn => fn());
+
+        return new(
+            _tarefaRepoMock.Object,
             _petRepoMock.Object,
             _statusRepoMock.Object,
             _usuarioRepoMock.Object,
             _usuarioPetRepoMock.Object,
             _historicoRepoMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _unitOfWorkMock.Object);
+    }
 
     [Fact]
     public void Create_DadosValidosECuidadorVinculado_DeveCriarTarefaComStatusPendente()
@@ -43,7 +52,7 @@ public class TarefaServiceTests(TestFixture fixture)
         _petRepoMock.Setup(r => r.ExistsById(petId)).Returns(true);
         _usuarioRepoMock.Setup(r => r.ExistsById(usuarioId)).Returns(true);
         _usuarioPetRepoMock.Setup(r => r.Exists(usuarioId, petId)).Returns(true);
-        _statusRepoMock.Setup(r => r.FirstOrDefault(It.IsAny<System.Linq.Expressions.Expression<Func<Status, bool>>>())).Returns(statusPendente);
+        _statusRepoMock.Setup(r => r.FirstOrDefault(It.IsAny<Expression<Func<Status, bool>>>())).Returns(statusPendente);
         _tarefaRepoMock.Setup(r => r.Add(It.IsAny<Tarefa>())).Returns<Tarefa>(t => t);
 
         // Act
@@ -77,7 +86,7 @@ public class TarefaServiceTests(TestFixture fixture)
     }
 
     [Fact]
-    public void Concluir_CuidadorAutorizado_DeveConcluirEGravarHistorico()
+    public void Concluir_CuidadorAutorizado_DeveConcluirEmTransacaoEGravarHistorico()
     {
         // Arrange
         var service = CreateService();
@@ -88,7 +97,7 @@ public class TarefaServiceTests(TestFixture fixture)
 
         _tarefaRepoMock.Setup(r => r.GetById(tarefa.Id)).Returns(tarefa);
         _usuarioPetRepoMock.Setup(r => r.Exists(usuarioId, petId)).Returns(true);
-        _statusRepoMock.Setup(r => r.FirstOrDefault(It.IsAny<System.Linq.Expressions.Expression<Func<Status, bool>>>())).Returns(statusConcluido);
+        _statusRepoMock.Setup(r => r.FirstOrDefault(It.IsAny<Expression<Func<Status, bool>>>())).Returns(statusConcluido);
         _tarefaRepoMock.Setup(r => r.Update(tarefa)).Returns(tarefa);
 
         // Act
@@ -96,7 +105,56 @@ public class TarefaServiceTests(TestFixture fixture)
 
         // Assert
         Assert.NotNull(response.Conclusao);
+        _unitOfWorkMock.Verify(u => u.ExecuteInTransaction(It.IsAny<Func<TarefaResponse>>()), Times.Once);
         _tarefaRepoMock.Verify(r => r.Update(tarefa), Times.Once);
         _historicoRepoMock.Verify(r => r.Add(It.Is<Historico>(h => h.TipoHist == "TAREFA_CONCLUIDA" && h.PetId == petId)), Times.Once);
+    }
+
+    [Fact]
+    public void Desmarcar_CuidadorAutorizado_DeveReverterConclusaoParaPendente()
+    {
+        // Arrange
+        var service = CreateService();
+        var petId = Guid.NewGuid();
+        var usuarioId = Guid.NewGuid();
+        var statusPendente = new Status("PENDENTE");
+        var tarefa = fixture.CriarTarefaValida(petId: petId, usuarioId: usuarioId);
+        tarefa.Concluir();
+
+        _tarefaRepoMock.Setup(r => r.GetById(tarefa.Id)).Returns(tarefa);
+        _usuarioPetRepoMock.Setup(r => r.Exists(usuarioId, petId)).Returns(true);
+        _statusRepoMock.Setup(r => r.FirstOrDefault(It.IsAny<Expression<Func<Status, bool>>>())).Returns(statusPendente);
+        _tarefaRepoMock.Setup(r => r.Update(tarefa)).Returns(tarefa);
+
+        // Act
+        var response = service.Desmarcar(tarefa.Id, usuarioId);
+
+        // Assert
+        Assert.Null(response.Conclusao);
+        Assert.Equal(statusPendente.Id, response.StatusId);
+        _tarefaRepoMock.Verify(r => r.Update(tarefa), Times.Once);
+    }
+
+    [Fact]
+    public void GetMinhasTarefas_UsuarioComVinculos_DeveConsultarEmLoteSemNPlus1()
+    {
+        // Arrange
+        var service = CreateService();
+        var usuarioId = Guid.NewGuid();
+        var petId = Guid.NewGuid();
+        var vinculo = fixture.CriarUsuarioPetValido(usuarioId, petId);
+        var tarefa = fixture.CriarTarefaValida(petId: petId, usuarioId: usuarioId);
+
+        _usuarioPetRepoMock.Setup(r => r.GetByUsuarioId(usuarioId)).Returns([vinculo]);
+        _tarefaRepoMock.Setup(r => r.Find(It.IsAny<Expression<Func<Tarefa, bool>>>())).Returns([tarefa]);
+
+        // Act
+        var resultado = service.GetMinhasTarefas(usuarioId, concluida: false);
+
+        // Assert
+        Assert.Single(resultado);
+        Assert.Equal(tarefa.Id, resultado[0].Id);
+        _tarefaRepoMock.Verify(r => r.Find(It.IsAny<Expression<Func<Tarefa, bool>>>()), Times.Once);
+        _tarefaRepoMock.Verify(r => r.GetByPetId(It.IsAny<Guid>()), Times.Never);
     }
 }

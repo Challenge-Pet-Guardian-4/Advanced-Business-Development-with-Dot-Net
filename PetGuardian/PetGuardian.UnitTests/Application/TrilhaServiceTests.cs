@@ -96,6 +96,38 @@ public class TrilhaServiceTests(TestFixture fixture)
     }
 
     [Fact]
+    public void GetByPetIds_ListaVazia_NaoDeveConsultarBanco()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act
+        var result = service.GetByPetIds([]);
+
+        // Assert
+        Assert.Empty(result);
+        _trilhaRepoMock.Verify(r => r.Find(It.IsAny<Expression<Func<Trilha, bool>>>()), Times.Never);
+    }
+
+    [Fact]
+    public void GetByPetIds_PetsValidos_DeveConsultarEmLoteUmaUnicaVez()
+    {
+        // Arrange
+        var service = CreateService();
+        var petId = Guid.NewGuid();
+        var trilha = fixture.CriarTrilhaValida(petId);
+        _trilhaRepoMock.Setup(r => r.Find(It.IsAny<Expression<Func<Trilha, bool>>>())).Returns([trilha]);
+
+        // Act
+        var result = service.GetByPetIds([petId]);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(trilha.Id, result[0].Id);
+        _trilhaRepoMock.Verify(r => r.Find(It.IsAny<Expression<Func<Trilha, bool>>>()), Times.Once);
+    }
+
+    [Fact]
     public void Delete_IdValido_DeveRetornarTrue()
     {
         // Arrange

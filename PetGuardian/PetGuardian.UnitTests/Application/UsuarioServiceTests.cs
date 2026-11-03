@@ -19,12 +19,24 @@ public class UsuarioServiceTests(TestFixture fixture)
     private readonly Mock<IEnderecoService> _enderecoServiceMock = new();
     private readonly Mock<ITarefaRepository> _tarefaRepoMock = new();
     private readonly Mock<ILogger<UsuarioService>> _loggerMock = new();
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
 
-    private UsuarioService CreateService() =>
-        new(_usuarioRepoMock.Object, _telefoneRepoMock.Object, _enderecoServiceMock.Object, _tarefaRepoMock.Object, _loggerMock.Object);
+    private UsuarioService CreateService()
+    {
+        _unitOfWorkMock.Setup(u => u.ExecuteInTransaction(It.IsAny<Func<UsuarioResponse>>()))
+            .Returns<Func<UsuarioResponse>>(fn => fn());
+
+        return new(
+            _usuarioRepoMock.Object,
+            _telefoneRepoMock.Object,
+            _enderecoServiceMock.Object,
+            _tarefaRepoMock.Object,
+            _loggerMock.Object,
+            _unitOfWorkMock.Object);
+    }
 
     [Fact]
-    public void Create_EmailNovoEDadosValidos_DeveCriarTelefoneEnderecoEUsuario()
+    public void Create_EmailNovoEDadosValidos_DeveCriarTelefoneEnderecoEUsuarioEmTransacao()
     {
         // Arrange
         var service = CreateService();
@@ -45,6 +57,7 @@ public class UsuarioServiceTests(TestFixture fixture)
         Assert.NotNull(response);
         Assert.Equal("Lucas", response.Nome);
         Assert.Equal(endId, response.EnderecoId);
+        _unitOfWorkMock.Verify(u => u.ExecuteInTransaction(It.IsAny<Func<UsuarioResponse>>()), Times.Once);
         _enderecoServiceMock.Verify(s => s.Create(endRequest), Times.Once);
         _telefoneRepoMock.Verify(r => r.Add(It.IsAny<Telefone>()), Times.Once);
         _usuarioRepoMock.Verify(r => r.Add(It.IsAny<Usuario>()), Times.Once);
@@ -65,6 +78,23 @@ public class UsuarioServiceTests(TestFixture fixture)
         // Assert
         Assert.Equal("Já existe um usuário com este e-mail.", ex.Message);
         _usuarioRepoMock.Verify(r => r.Add(It.IsAny<Usuario>()), Times.Never);
+    }
+
+    [Fact]
+    public void UpgradePremium_UsuarioExistente_DeveAlterarRoleParaPremium()
+    {
+        // Arrange
+        var service = CreateService();
+        var usuario = fixture.CriarUsuarioValido();
+        _usuarioRepoMock.Setup(r => r.GetById(usuario.Id)).Returns(usuario);
+        _usuarioRepoMock.Setup(r => r.Update(usuario)).Returns(usuario);
+
+        // Act
+        var response = service.UpgradePremium(usuario.Id);
+
+        // Assert
+        Assert.Equal(RoleUsuario.Premium, response.Role);
+        _usuarioRepoMock.Verify(r => r.Update(usuario), Times.Once);
     }
 
     [Fact]
